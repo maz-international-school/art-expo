@@ -3,142 +3,123 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Rankings | Art Expo 2026</title>
+    <title>Live Ranking | Maz Art Expo 2026</title>
     <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesque:wght@700&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
-<body style="display: block; padding: 40px 20px;">
+<body style="background: #000; margin: 0; padding: 0; overflow: hidden; cursor: none;">
 
-    <div class="container" style="max-width: 900px;">
-        <header style="margin-bottom: 50px;">
-            <h1 style="justify-content: center; font-size: 4rem;">RANKINGS</h1>
-            <p style="background: var(--blue); color: white;">LIVE EXPO STANDINGS</p>
-        </header>
+    <!-- THE LED LOGO (Bottom Right) -->
+    <img src="image1.png" class="school-logo" style="width: 180px; height: 180px; opacity: 1; filter: drop-shadow(0 0 20px rgba(255,255,255,0.2));">
 
-        <!-- CATEGORY: KINDERGARTEN -->
-        <section class="card" style="margin-bottom: 50px; border-color: var(--black);">
-            <h2 style="background: var(--red); color: white; padding: 5px 15px;">KINDERGARTEN TOP 5</h2>
-            <div id="chart-kindergarten" class="chart-container"></div>
-        </section>
+    <!-- MAIN BROADCAST LAYOUT -->
+    <div style="height: 100vh; display: flex; flex-direction: column; background: #000;">
+        
+        <!-- TOP TICKER BAR -->
+        <div style="background: var(--red); color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 5px solid #fff;">
+            <div style="font-family: 'Archivo Black'; font-size: 2.5rem; letter-spacing: 5px;">LIVE RANKINGS</div>
+            <div id="total-ticker" style="font-family: 'Archivo Black'; font-size: 2rem;">VOTES: 0</div>
+        </div>
 
-        <!-- CATEGORY: PRIMARY -->
-        <section class="card" style="margin-bottom: 50px; border-color: var(--black);">
-            <h2 style="background: var(--blue); color: white; padding: 5px 15px;">PRIMARY TOP 5</h2>
-            <div id="chart-primary" class="chart-container"></div>
-        </section>
+        <!-- THE GRID -->
+        <div style="flex: 1; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; padding: 20px; box-sizing: border-box;">
+            
+            <!-- KINDERGARTEN -->
+            <div class="led-column">
+                <div class="led-header" style="border-left: 15px solid var(--red);">KINDERGARTEN</div>
+                <div id="chart-kindergarten" class="list-container"></div>
+            </div>
 
-        <!-- CATEGORY: SECONDARY -->
-        <section class="card" style="margin-bottom: 50px; border-color: var(--black);">
-            <h2 style="background: var(--yellow); color: var(--black); padding: 5px 15px;">SECONDARY TOP 5</h2>
-            <div id="chart-secondary" class="chart-container"></div>
-        </section>
+            <!-- PRIMARY -->
+            <div class="led-column">
+                <div class="led-header" style="border-left: 15px solid var(--blue);">PRIMARY</div>
+                <div id="chart-primary" class="list-container"></div>
+            </div>
+
+            <!-- SECONDARY -->
+            <div class="led-column">
+                <div class="led-header" style="border-left: 15px solid var(--yellow);">SECONDARY</div>
+                <div id="chart-secondary" class="list-container"></div>
+            </div>
+
+        </div>
     </div>
 
     <script src="firebase-config.js"></script>
     <script>
-        // LIVE LISTENER
         db.collection('artworks').onSnapshot(snap => {
             const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            
-            renderCategory('kindergarten', data);
-            renderCategory('primary', data);
-            renderCategory('secondary', data);
+            let totalVotes = 0;
+
+            ['kindergarten', 'primary', 'secondary'].forEach(cat => {
+                const out = document.getElementById(`chart-${cat}`);
+                out.innerHTML = "";
+                
+                const list = data.filter(a => a.category === cat)
+                                 .sort((a,b) => b.voteCount - a.voteCount)
+                                 .slice(0, 5); // Top 5 per category
+
+                if(list.length > 0) {
+                    const max = Math.max(...list.map(a => a.voteCount), 1);
+                    list.forEach((art, i) => {
+                        totalVotes += art.voteCount;
+                        const pct = (art.voteCount / max) * 100;
+                        const isFirst = i === 0 && art.voteCount > 0;
+                        
+                        const row = document.createElement('div');
+                        row.className = `led-row ${isFirst ? 'crown' : ''}`;
+                        row.innerHTML = `
+                            <div class="led-rank">0${i+1}</div>
+                            <div class="led-data">
+                                <div class="led-name">${art.artist}</div>
+                                <div class="led-bar-box">
+                                    <div class="led-bar-fill" style="width:${pct}%; background:${getCol(cat)}"></div>
+                                    <div class="led-count">${art.voteCount}</div>
+                                </div>
+                            </div>
+                        `;
+                        out.appendChild(row);
+                    });
+                }
+            });
+            document.getElementById('total-ticker').innerText = "TOTAL VOTES: " + totalVotes;
         });
 
-        function renderCategory(catId, allData) {
-            const container = document.getElementById(`chart-${catId}`);
-            container.innerHTML = "";
-
-            // Filter and Sort
-            const filtered = allData
-                .filter(a => a.category === catId)
-                .sort((a, b) => b.voteCount - a.voteCount)
-                .slice(0, 5); // Only show top 5
-
-            if (filtered.length === 0) {
-                container.innerHTML = "<p>No votes yet...</p>";
-                return;
-            }
-
-            // Find max votes to scale bars
-            const maxVotes = Math.max(...filtered.map(a => a.voteCount), 1);
-
-            filtered.forEach((art, index) => {
-                const percentage = (art.voteCount / maxVotes) * 100;
-                
-                const row = document.createElement('div');
-                row.className = "chart-row";
-                row.innerHTML = `
-                    <div class="chart-label">
-                        <strong>#${index + 1}</strong> ${art.artist}
-                        <span style="display:block; font-size:0.7rem; opacity:0.6;">"${art.title}"</span>
-                    </div>
-                    <div class="bar-wrapper">
-                        <div class="bar" style="width: ${percentage}%; background: ${getBarColor(index)};">
-                            <span class="vote-num">${art.voteCount}</span>
-                        </div>
-                    </div>
-                `;
-                container.appendChild(row);
-            });
-        }
-
-        function getBarColor(index) {
-            const colors = ['#e63946', '#1d3557', '#ffb703', '#1a1a1a', '#555'];
-            return colors[index] || '#999';
+        function getCol(cat) {
+            if(cat === 'kindergarten') return '#e63946';
+            if(cat === 'primary') return '#1d3557';
+            return '#ffb703';
         }
     </script>
 
     <style>
-        .chart-container {
-            margin-top: 20px;
-        }
-        .chart-row {
-            margin-bottom: 25px;
-            display: grid;
-            grid-template-columns: 150px 1fr;
-            align-items: center;
-            gap: 20px;
-        }
-        .chart-label {
-            font-family: 'Montserrat', sans-serif;
-            font-weight: 700;
-            font-size: 0.9rem;
-            text-align: right;
-            text-transform: uppercase;
-        }
-        .bar-wrapper {
-            background: #f0f0f0;
-            border: 3px solid var(--black);
-            height: 40px;
-            position: relative;
-        }
-        .bar {
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            padding-right: 15px;
-            transition: width 1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            border-right: 4px solid black;
-        }
-        .vote-num {
-            color: white;
-            font-family: 'Archivo Black', sans-serif;
-            font-size: 1.2rem;
-            text-shadow: 2px 2px 0px rgba(0,0,0,0.3);
-        }
-        /* Color override for yellow bar text */
-        .bar[style*="background: rgb(255, 183, 3)"] .vote-num {
-            color: black;
-            text-shadow: none;
-        }
+        .led-column { background: rgba(255,255,255,0.03); border: 2px solid rgba(255,255,255,0.1); padding: 10px; display: flex; flex-direction: column; }
+        .led-header { font-family: 'Archivo Black'; font-size: 1.8rem; color: #fff; padding: 15px; background: rgba(255,255,255,0.05); margin-bottom: 20px; }
+        
+        .list-container { flex: 1; display: flex; flex-direction: column; gap: 20px; padding: 10px; }
+        
+        .led-row { display: flex; align-items: flex-end; gap: 15px; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .led-rank { font-family: 'Archivo Black'; font-size: 2.5rem; color: rgba(255,255,255,0.2); line-height: 1; }
+        .led-data { flex: 1; }
+        .led-name { font-family: 'Space Grotesque'; font-size: 1.4rem; color: #fff; text-transform: uppercase; margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        .led-bar-box { height: 40px; background: #222; position: relative; border: 1px solid #444; }
+        .led-bar-fill { height: 100%; transition: width 2s cubic-bezier(0.23, 1, 0.32, 1); box-shadow: 0 0 15px rgba(255,255,255,0.2); }
+        .led-count { position: absolute; right: 15px; top: 5px; font-family: 'Archivo Black'; font-size: 1.5rem; color: #fff; text-shadow: 2px 2px 5px #000; }
 
-        @media (max-width: 600px) {
-            .chart-row { grid-template-columns: 1fr; gap: 5px; }
-            .chart-label { text-align: left; }
+        .crown { background: rgba(255, 255, 255, 0.08); border: 2px solid var(--yellow); transform: scale(1.02); box-shadow: 0 0 30px rgba(255, 183, 3, 0.2); }
+        .crown .led-rank { color: var(--yellow); }
+        .crown .led-name { font-weight: 900; letter-spacing: 1px; }
+
+        @keyframes scanline {
+            0% { transform: translateY(-100vh); }
+            100% { transform: translateY(100vh); }
+        }
+        body::after {
+            content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 5px; 
+            background: rgba(255,255,255,0.03); animation: scanline 8s linear infinite; pointer-events: none;
         }
     </style>
 </body>
