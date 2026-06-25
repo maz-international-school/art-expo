@@ -128,3 +128,39 @@ window.backToSearch = function() {
     document.getElementById('step-confirm').classList.add('hidden'); 
     document.getElementById('step-search').classList.remove('hidden'); 
 };
+// ... inside confirmVote()
+    document.getElementById('step-search').classList.add('hidden');
+    document.getElementById('step-confirm').classList.remove('hidden');
+}
+
+window.submitVote = async function() {
+    const btn = document.getElementById('vote-btn');
+    btn.disabled = true;
+    btn.innerText = "RECORDING...";
+    
+    try {
+        const batch = db.batch();
+        const artRef = db.collection('artworks').doc(currentArt.id);
+        batch.update(artRef, { voteCount: firebase.firestore.FieldValue.increment(1) });
+
+        const voterRef = db.collection('voters').doc(`${currentVoter}_${currentArt.category}`);
+        batch.set(voterRef, { timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+
+        await batch.commit();
+        window.nextStep();
+    } catch (err) {
+        alert("Error! Check your internet connection.");
+        btn.disabled = false;
+        btn.innerText = "Cast Vote";
+    }
+};
+
+window.nextStep = function() {
+    currentStep++;
+    showStep();
+};
+
+window.backToSearch = function() {
+    document.getElementById('step-confirm').classList.add('hidden');
+    document.getElementById('step-search').classList.remove('hidden');
+};
