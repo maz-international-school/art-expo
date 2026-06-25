@@ -1,0 +1,134 @@
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Montserrat:wght@400;700;900&display=swap');
+
+:root {
+    --red: #e63946;
+    --blue: #1d3557;
+    --yellow: #ffb703;
+    --white: #ffffff;
+    --black: #1a1a1a;
+}
+
+body {
+    background-color: var(--white);
+    background-image: 
+        linear-gradient(var(--black) 1px, transparent 1px),
+        linear-gradient(90deg, var(--black) 1px, transparent 1px);
+    background-size: 50px 50px;
+    color: var(--black);
+    font-family: 'Montserrat', sans-serif;
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.container { width: 100%; max-width: 480px; text-align: center; }
+
+h1 {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 3.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: -1px;
+}
+
+h1::before {
+    content: '';
+    display: inline-block;
+    width: 15px; height: 50px;
+    background: var(--red);
+    margin-right: 15px;
+}
+
+header p {
+    font-weight: 900;
+    text-transform: uppercase;
+    background: var(--yellow);
+    display: inline-block;
+    padding: 8px 20px;
+    margin-top: 10px;
+    margin-bottom: 40px;
+    border: 3px solid var(--black);
+    font-size: 0.85rem;
+}
+
+.card {
+    background: white;
+    border: 6px solid var(--black);
+    padding: 40px;
+    box-shadow: 15px 15px 0px var(--blue);
+    position: relative;
+    text-align: left;
+}
+
+h2 {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 1.6rem;
+    text-transform: uppercase;
+    margin-bottom: 25px;
+}
+
+input, select {
+    width: 100%;
+    background: white;
+    border: 4px solid var(--black);
+    padding: 18px;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 25px;
+    outline: none;
+    border-radius: 0;
+    box-sizing: border-box;
+}
+
+button {
+    width: 100%;
+    padding: 20px;
+    background: var(--red);
+    color: white;
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 1.3rem;
+    text-transform: uppercase;
+    border: 4px solid var(--black);
+    cursor: pointer;
+    border-radius: 0;
+}
+
+button:hover { background: var(--blue); transform: translate(-3px, -3px); box-shadow: 6px 6px 0px var(--yellow); }
+
+/* SEARCH SUGGESTIONS */
+.search-suggestions {
+    position: absolute;
+    top: 100%; left: 0; right: 0;
+    background: white;
+    border: 4px solid var(--black);
+    z-index: 100;
+    box-shadow: 10px 10px 0px var(--blue);
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.search-item {
+    padding: 15px;
+    border-bottom: 2px solid var(--black);
+    cursor: pointer;
+}
+
+.search-item:hover { background: var(--yellow); }
+
+/* ARTWORK PREVIEW */
+#artwork-preview { border: 10px solid var(--black); background: white; margin: 20px 0; }
+#artwork-preview img { width: 100%; display: block; }
+#artwork-preview h3 { background: var(--black); color: white; margin: 0; padding: 15px; font-family: 'Archivo Black'; font-size: 1.1rem; text-align: center; }
+#artwork-preview p { margin: 0; padding: 10px; font-weight: 900; text-align: center; }
+
+.hidden { display: none; }
+
+/* ADMIN PANEL ROW */
+.result-row { border: 4px solid var(--black); margin-bottom: 12px; padding: 15px; display: flex; justify-content: space-between; font-weight: 900; text-transform: uppercase; }

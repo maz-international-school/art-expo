@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Control | Art Expo 2026</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+<body style="display: block; padding: 50px 20px;">
+
+    <div class="container" style="max-width: 900px; text-align: left;">
+        <header style="margin-bottom: 40px;">
+            <h1 style="justify-content: flex-start;">DATA CONTROL</h1>
+            <p style="background: var(--red); color: white;">Search, Edit & Sync</p>
+        </header>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;" class="admin-grid">
+            
+            <!-- SECTION 1: BULK UPLOADER -->
+            <div class="card" style="box-shadow: 10px 10px 0px var(--yellow);">
+                <h2>Mega Upload</h2>
+                <input type="file" id="csv-file" accept=".csv" style="padding: 10px; border-width: 2px;">
+                <button onclick="bulkUpload()" id="upload-btn" style="background: var(--blue);">Sync Namelist</button>
+                <div id="upload-status" style="margin-top:15px; font-weight: 900; color: var(--red); font-size: 0.8rem;"></div>
+            </div>
+
+            <!-- SECTION 2: MANUAL ADD / EDIT -->
+            <div class="card">
+                <h2 id="form-title">Add/Edit Artist</h2>
+                <input type="text" id="a-code" placeholder="Code (e.g. SD0001)">
+                <input type="text" id="a-title" placeholder="Art Title">
+                <input type="text" id="a-artist" placeholder="Student Name">
+                <select id="a-cat">
+                    <option value="kindergarten">Kindergarten</option>
+                    <option value="primary">Primary</option>
+                    <option value="secondary">Secondary</option>
+                </select>
+                <button onclick="addArt()" id="save-btn">Save to DB</button>
+                <button onclick="resetForm()" id="cancel-btn" class="hidden" style="background:none; color:var(--blue); border:none; text-decoration:underline; margin-top:10px; cursor:pointer;">Cancel Edit</button>
+            </div>
+        </div>
+
+        <!-- SECTION 3: LIVE DATABASE WITH SEARCH -->
+        <div class="card" style="margin-top: 40px; box-shadow: 15px 15px 0px var(--black); width: 100%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <h2>Live Database</h2>
+                <div id="total-votes" style="background: var(--black); color: white; padding: 5px 15px; font-weight: 900;">VOTES: 0</div>
+            </div>
+
+            <!-- THE SEARCH BAR -->
+            <div style="margin-top: 20px;">
+                <input type="text" id="db-search" placeholder="Quick find by name or code..." style="margin-bottom: 0; border-color: var(--blue);">
+            </div>
+
+            <div id="admin-results" style="margin-top: 10px; max-height: 600px; overflow-y: auto;">
+                <!-- Data rows appear here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="firebase-config.js"></script>
+
+    <script>
+        let fullLocalData = []; // Store the DB locally for instant searching
+
+        // 1. ADD / UPDATE LOGIC
+        async function addArt() {
+            const code = document.getElementById('a-code').value.toUpperCase().trim();
+            const title = document.getElementById('a-title').value.trim();
+            const artist = document.getElementById('a-artist').value.trim();
+            const cat = document.getElementById('a-cat').value;
+
+            if(!code || !artist) return alert("Code and Name are required!");
+
+            try {
+                await db.collection('artworks').doc(code).set({
+                    title: title, artist: artist, category: cat
+                }, { merge: true });
+                
+                alert("Database Updated!");
+                resetForm();
+            } catch (e) { alert(e.message); }
+        }
+
+        function resetForm() {
+            document.getElementById('a-code').value = "";
+            document.getElementById('a-code').disabled = false;
+            document.getElementById('a-title').value = "";
+            document.getElementById('a-artist').value = "";
+            document.getElementById('form-title').innerText = "Add/Edit Artist";
+            document.getElementById('save-btn').innerText = "Save to DB";
+            document.getElementById('cancel-btn').classList.add('hidden');
+        }
+
+        // 2. PREPARE EDIT / DELETE
+        function prepareEdit(code, title, artist, cat) {
+            document.getElementById('a-code').value = code;
+            document.getElementById('a-code').disabled = true;
+            document.getElementById('a-title').value = title;
+            document.getElementById('a-artist').value = artist;
+            document.getElementById('a-cat').value = cat;
+            
+            document.getElementById('form-title').innerText = "Editing: " + code;
+            document.getElementById('save-btn').innerText = "Update Record";
+            document.getElementById('cancel-btn').classList.remove('hidden');
+            window.scrollTo({top: 0, behavior: 'smooth'});
+        }
+
+        async function deleteArt(code) {
+            if(confirm("Delete " + code + "? Votes will be lost!")) {
+                await db.collection('artworks').doc(code).delete();
+            }
+        }
+
+        // 3. SEARCH LOGIC
+        document.getElementById('db-search').addEventListener('input', (e) => {
+            renderList(e.target.value.toLowerCase());
+        });
+
+        function renderList(filter = "") {
+            const out = document.getElementById('admin-results');
+            out.innerHTML = "";
+            
+            const filtered = fullLocalData.filter(d => 
+                d.id.toLowerCase().includes(filter) || 
+                d.artist.toLowerCase().includes(val = filter) ||
+                d.category.toLowerCase().includes(val = filter)
+            );
+
+            filtered.forEach(d => {
+                const row = document.createElement('div');
+                row.className = "result-row";
+                row.innerHTML = `
+                    <div style="flex: 1;">
+                        <b style="color:var(--red)">${d.id}</b> ${d.artist} 
+                        <br><small>${d.category.toUpperCase()} | "${d.title || 'No Title'}"</small>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="background:var(--blue); color:white; padding: 2px 8px;">${d.voteCount || 0}</span>
+                        <button onclick="prepareEdit('${d.id}', '${d.title || ''}', '${d.artist}', '${d.category}')" style="padding:5px 10px; font-size:0.6rem; background:var(--yellow); color:black; cursor:pointer;">EDIT</button>
+                        <button onclick="deleteArt('${d.id}')" style="padding:5px 10px; font-size:0.6rem; background:var(--red); color:white; cursor:pointer;">DEL</button>
+                    </div>
+                `;
+                out.appendChild(row);
+            });
+        }
+
+        // 4. BULK UPLOAD LOGIC
+        async function bulkUpload() {
+            const fileInput = document.getElementById('csv-file');
+            const status = document.getElementById('upload-status');
+            const btn = document.getElementById('upload-btn');
+
+            if (!fileInput.files[0]) return alert("Select a CSV file!");
+
+            btn.disabled = true;
+            Papa.parse(fileInput.files[0], {
+                header: true,
+                skipEmptyLines: true,
+                complete: async function(results) {
+                    const data = results.data;
+                    let count = 0;
+                    for (const item of data) {
+                        if (item.Code) {
+                            await db.collection('artworks').doc(item.Code.toUpperCase().trim()).set({
+                                title: item.Title || "",
+                                artist: item.Name || "",
+                                category: (item.Category || "primary").toLowerCase()
+                            }, { merge: true });
+                            count++;
+                            status.innerText = `SYNCING: ${count}/${data.length}`;
+                        }
+                    }
+                    status.innerText = `✅ SYNCED ${count} RECORDS.`;
+                    btn.disabled = false;
+                }
+            });
+        }
+
+        // 5. REAL-TIME LISTENER
+        db.collection('artworks').orderBy('category').onSnapshot(snap => {
+            const totalDisplay = document.getElementById('total-votes');
+            let totalVotes = 0;
+            
+            fullLocalData = snap.docs.map(doc => {
+                const d = doc.data();
+                totalVotes += (d.voteCount || 0);
+                return { id: doc.id, ...d };
+            });
+
+            totalDisplay.innerText = "TOTAL VOTES: " + totalVotes;
+            renderList(document.getElementById('db-search').value.toLowerCase());
+        });
+    </script>
+
+    <style>
+        @media (max-width: 600px) { .admin-grid { grid-template-columns: 1fr !important; } }
+        .result-row small { opacity: 0.6; text-transform: none; font-weight: 400; }
+        .result-row button { border: 2px solid black; font-weight: 900; }
+    </style>
+</body>
+</html>
