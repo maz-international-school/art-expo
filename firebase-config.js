@@ -1,5 +1,3 @@
-// firebase-config.js
-
 const firebaseConfig = {
   apiKey: "AIzaSyCy1u5n7YgFtom8swiVIOvr3jpY_MQPXxs",
   authDomain: "art-expo-maz.firebaseapp.com",
@@ -10,8 +8,5 @@ const firebaseConfig = {
   measurementId: "G-07ZMN0CEG8"
 };
 
-// Initialize Firebase
 firebase.initializeApp(firebaseConfig);
-
-// Initialize Firestore (the database)
 const db = firebase.firestore();
