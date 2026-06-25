@@ -1,58 +1,130 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vote | Art Expo 2026</title>
-    <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
-</head>
-<body>
-    <img src="image1.png" class="school-logo" alt="MAZ Logo">
+// app.js
+let currentVoter = "";
+let currentArt = null;
+let allArtworks = []; 
+let currentStep = 1; 
 
-    <div class="container">
-        <header>
-            <h1>ART EXPO 2026</h1>
-            <div id="step-indicator" class="hidden" style="font-weight: 900; color: var(--red); margin-bottom: 10px;">
-                QUESTION <span id="current-q-num">1</span> OF 3
-            </div>
-        </header>
+const categories = {
+    1: { id: "kindergarten", label: "Kindergarten" },
+    2: { id: "primary", label: "Primary School" },
+    3: { id: "secondary", label: "Secondary School" }
+};
 
-        <div class="card" id="voting-card">
-            <div id="step-id">
-                <h2>Who is voting?</h2>
-                <input type="text" id="voter-id" placeholder="Email or Phone Number">
-                <button type="button" onclick="startVoting()">Start Voting</button>
-            </div>
+// 1. LOAD DATA
+async function loadArtData() {
+    try {
+        const snap = await db.collection('artworks').get();
+        allArtworks = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        console.log("System Ready: " + allArtworks.length + " artists loaded.");
+    } catch (e) {
+        console.error("Database failed to load:", e);
+    }
+}
+loadArtData();
 
-            <div id="step-search" class="hidden">
-                <h2 id="question-title">Category</h2>
-                <div style="position: relative;">
-                    <input type="text" id="search-input" placeholder="Search artist..." autocomplete="off">
-                    <div id="search-results" class="search-suggestions hidden"></div>
-                </div>
-                <button onclick="nextStep()" style="background:none; color: var(--blue); border:none; margin-top:20px; font-size: 0.8rem; text-decoration: underline; cursor:pointer; width:100%;">Skip Category</button>
-            </div>
+// 2. START VOTING (Attached to window so HTML can see it)
+window.startVoting = async function() {
+    console.log("Start Voting Triggered");
+    
+    // Check Kill-Switch
+    try {
+        const statusDoc = await db.collection('settings').doc('status').get();
+        if (statusDoc.exists && statusDoc.data().isOpen === false) {
+            alert("Voting is currently locked by the administrator.");
+            return;
+        }
+    } catch (e) { console.log("Status check skipped"); }
 
-            <div id="step-confirm" class="hidden">
-                <div id="artwork-preview"></div>
-                <button id="vote-btn" onclick="submitVote()">Cast Vote</button>
-                <button onclick="backToSearch()" style="background:none; color: var(--blue); border:none; margin-top:15px; font-size: 0.7rem; text-decoration: underline; width:100%;">Change Selection</button>
-            </div>
-        </div>
+    const id = document.getElementById('voter-id').value.trim();
+    if (id.length < 5) return alert("Enter email or phone!");
+    
+    currentVoter = id;
+    document.getElementById('step-id').classList.add('hidden');
+    document.getElementById('step-indicator').classList.remove('hidden');
+    showStep();
+};
 
-        <div id="success-message" class="card hidden">
-            <h2 style="color: var(--red)">THANK YOU!</h2>
-            <p>All your votes have been recorded.</p>
-            <button onclick="location.reload()">Finish</button>
-        </div>
-    </div>
+function showStep() {
+    if (currentStep > 3) {
+        document.getElementById('voting-card').classList.add('hidden');
+        document.getElementById('step-indicator').classList.add('hidden');
+        document.getElementById('success-message').classList.remove('hidden');
+        return;
+    }
+    const cat = categories[currentStep];
+    document.getElementById('current-q-num').innerText = currentStep;
+    document.getElementById('question-title').innerText = cat.label;
+    document.getElementById('search-input').value = "";
+    document.getElementById('step-search').classList.remove('hidden');
+    document.getElementById('step-confirm').classList.add('hidden');
+    setupSearch(cat.id);
+}
 
-    <!-- SCRIPTS -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    <script src="firebase-config.js"></script>
-    <!-- REMOVED async/defer/type="module" to ensure global scope -->
-    <script src="app.js"></script>
-</body>
-</html>
+function setupSearch(categoryId) {
+    const input = document.getElementById('search-input');
+    const results = document.getElementById('search-results');
+    const newInput = input.cloneNode(true);
+    input.parentNode.replaceChild(newInput, input);
+
+    newInput.addEventListener('input', () => {
+        const val = newInput.value.toLowerCase();
+        results.innerHTML = '';
+        if (val.length < 2) { results.classList.add('hidden'); return; }
+        
+        const matches = allArtworks.filter(a => 
+            a.category === categoryId && 
+            a.artist.toLowerCase().includes(val)
+        ).slice(0, 6); 
+
+        if (matches.length > 0) {
+            results.classList.remove('hidden');
+            matches.forEach(m => {
+                const div = document.createElement('div');
+                div.className = 'search-item';
+                div.innerHTML = `<strong>${m.artist}</strong><br><small>${m.title || 'No Title'}</small>`;
+                div.onclick = () => { 
+                    currentArt = m; 
+                    confirmVote(); 
+                };
+                results.appendChild(div);
+            });
+        } else { results.classList.add('hidden'); }
+    });
+}
+
+async function confirmVote() {
+    const voteCheck = await db.collection('voters').doc(`${currentVoter}_${currentArt.category}`).get();
+    if (voteCheck.exists) { 
+        alert("Already voted for " + currentArt.category + "!"); 
+        nextStep(); 
+        return; 
+    }
+    document.getElementById('search-results').classList.add('hidden');
+    document.getElementById('artwork-preview').innerHTML = `
+        <img src="${currentArt.imageUrl || 'https://via.placeholder.com/400x300?text=Artwork'}">
+        <h3>${currentArt.title || 'Untitled'}</h3><p>${currentArt.artist}</p>
+        <p style="background:var(--yellow); font-size:0.7rem;">CATEGORY: ${currentArt.category.toUpperCase()}</p>`;
+    document.getElementById('step-search').classList.add('hidden');
+    document.getElementById('step-confirm').classList.remove('hidden');
+}
+
+// 3. SUBMIT & NEXT (Also attached to window)
+window.submitVote = async function() {
+    const btn = document.getElementById('vote-btn');
+    btn.disabled = true;
+    const batch = db.batch();
+    batch.update(db.collection('artworks').doc(currentArt.id), { voteCount: firebase.firestore.FieldValue.increment(1) });
+    batch.set(db.collection('voters').doc(`${currentVoter}_${currentArt.category}`), { timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+    await batch.commit();
+    nextStep();
+};
+
+window.nextStep = function() { 
+    currentStep++; 
+    showStep(); 
+};
+
+window.backToSearch = function() { 
+    document.getElementById('step-confirm').classList.add('hidden'); 
+    document.getElementById('step-search').classList.remove('hidden'); 
+};
