@@ -27,19 +27,19 @@ body {
     position: relative;
 }
 
-/* THE 9-SQUARE CORNER LOGO (3x3 Grid Block) */
+/* THE 9-SQUARE COLOR LOGO (3x3 Grid Block) */
 .school-logo {
     position: fixed;
     bottom: 0;
     right: 0;
     width: 150px;  /* 3 Squares @ 50px */
     height: 150px; /* 3 Squares @ 50px */
-    z-index: 1;    /* Behind cards, above grid */
-    opacity: 0.15;
-    filter: grayscale(100%) contrast(1.2);
+    z-index: 1;    
+    opacity: 1;    /* FULL COLOR */
+    filter: none;  /* NO GRAYSCALE */
     pointer-events: none;
     object-fit: contain;
-    padding: 15px;
+    padding: 10px; /* Keeps it slightly inside the grid lines */
     box-sizing: border-box;
 }
 
@@ -48,7 +48,7 @@ body {
     max-width: 480px;
     text-align: center;
     position: relative;
-    z-index: 5; /* Ensures content is above the logo watermark */
+    z-index: 5; 
 }
 
 h1 {
