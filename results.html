@@ -3,45 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Ranking | Maz Art Expo 2026</title>
+    <title>MAZ ART EXPO | LIVE RANKINGS</title>
     <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesque:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Montserrat:wght@900&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
-<body style="background: #000; margin: 0; padding: 0; overflow: hidden; cursor: none;">
+<body style="display: block; padding: 0; overflow: hidden; cursor: none;">
 
-    <!-- THE LED LOGO (Bottom Right) -->
-    <img src="image1.png" class="school-logo" style="width: 180px; height: 180px; opacity: 1; filter: drop-shadow(0 0 20px rgba(255,255,255,0.2));">
+    <!-- THE 3x3 COLOR LOGO (Stays in the corner) -->
+    <img src="image1.png" class="school-logo" alt="Logo">
 
-    <!-- MAIN BROADCAST LAYOUT -->
-    <div style="height: 100vh; display: flex; flex-direction: column; background: #000;">
+    <div style="height: 100vh; display: flex; flex-direction: column; position: relative; z-index: 2;">
         
-        <!-- TOP TICKER BAR -->
-        <div style="background: var(--red); color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 5px solid #fff;">
-            <div style="font-family: 'Archivo Black'; font-size: 2.5rem; letter-spacing: 5px;">LIVE RANKINGS</div>
-            <div id="total-ticker" style="font-family: 'Archivo Black'; font-size: 2rem;">VOTES: 0</div>
+        <!-- TOP BROADCAST BAR -->
+        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--black); color: white; padding: 20px 40px; border-bottom: 10px solid var(--red);">
+            <div style="font-family: 'Archivo Black'; font-size: 3rem; letter-spacing: -2px;">ART EXPO 2026</div>
+            <div id="total-votes-ticker" style="font-family: 'Archivo Black'; font-size: 2rem; background: var(--yellow); color: var(--black); padding: 5px 20px;">TOTAL VOTES: 0</div>
         </div>
 
-        <!-- THE GRID -->
-        <div style="flex: 1; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; padding: 20px; box-sizing: border-box;">
+        <!-- THE TRI-GRID LAYOUT -->
+        <div style="flex: 1; display: grid; grid-template-columns: 1fr 1fr 1fr; background: transparent;">
             
             <!-- KINDERGARTEN -->
-            <div class="led-column">
-                <div class="led-header" style="border-left: 15px solid var(--red);">KINDERGARTEN</div>
-                <div id="chart-kindergarten" class="list-container"></div>
+            <div style="border-right: 6px solid var(--black); display: flex; flex-direction: column;">
+                <div style="background: var(--red); color: white; font-family: 'Archivo Black'; font-size: 2.2rem; padding: 20px; text-align: center; border-bottom: 6px solid var(--black);">KINDERGARTEN</div>
+                <div id="chart-kindergarten" class="led-list"></div>
             </div>
 
             <!-- PRIMARY -->
-            <div class="led-column">
-                <div class="led-header" style="border-left: 15px solid var(--blue);">PRIMARY</div>
-                <div id="chart-primary" class="list-container"></div>
+            <div style="border-right: 6px solid var(--black); display: flex; flex-direction: column;">
+                <div style="background: var(--blue); color: white; font-family: 'Archivo Black'; font-size: 2.2rem; padding: 20px; text-align: center; border-bottom: 6px solid var(--black);">PRIMARY</div>
+                <div id="chart-primary" class="led-list"></div>
             </div>
 
             <!-- SECONDARY -->
-            <div class="led-column">
-                <div class="led-header" style="border-left: 15px solid var(--yellow);">SECONDARY</div>
-                <div id="chart-secondary" class="list-container"></div>
+            <div style="display: flex; flex-direction: column;">
+                <div style="background: var(--yellow); color: var(--black); font-family: 'Archivo Black'; font-size: 2.2rem; padding: 20px; text-align: center; border-bottom: 6px solid var(--black);">SECONDARY</div>
+                <div id="chart-secondary" class="led-list"></div>
             </div>
 
         </div>
@@ -51,7 +50,7 @@
     <script>
         db.collection('artworks').onSnapshot(snap => {
             const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            let totalVotes = 0;
+            let globalTotal = 0;
 
             ['kindergarten', 'primary', 'secondary'].forEach(cat => {
                 const out = document.getElementById(`chart-${cat}`);
@@ -59,67 +58,81 @@
                 
                 const list = data.filter(a => a.category === cat)
                                  .sort((a,b) => b.voteCount - a.voteCount)
-                                 .slice(0, 5); // Top 5 per category
+                                 .slice(0, 6); // Top 6 looks best on big screen
 
                 if(list.length > 0) {
                     const max = Math.max(...list.map(a => a.voteCount), 1);
                     list.forEach((art, i) => {
-                        totalVotes += art.voteCount;
+                        globalTotal += art.voteCount;
                         const pct = (art.voteCount / max) * 100;
-                        const isFirst = i === 0 && art.voteCount > 0;
                         
                         const row = document.createElement('div');
-                        row.className = `led-row ${isFirst ? 'crown' : ''}`;
+                        row.className = "led-row";
                         row.innerHTML = `
-                            <div class="led-rank">0${i+1}</div>
-                            <div class="led-data">
-                                <div class="led-name">${art.artist}</div>
-                                <div class="led-bar-box">
-                                    <div class="led-bar-fill" style="width:${pct}%; background:${getCol(cat)}"></div>
-                                    <div class="led-count">${art.voteCount}</div>
-                                </div>
+                            <div class="artist-label">
+                                <span class="rank">#${i+1}</span> ${art.artist}
+                            </div>
+                            <div class="bar-container">
+                                <div class="bar-fill" style="width: ${pct}%; background: ${getCatColor(cat)}"></div>
+                                <div class="vote-number">${art.voteCount}</div>
                             </div>
                         `;
                         out.appendChild(row);
                     });
                 }
             });
-            document.getElementById('total-ticker').innerText = "TOTAL VOTES: " + totalVotes;
+            document.getElementById('total-votes-ticker').innerText = "TOTAL VOTES: " + globalTotal;
         });
 
-        function getCol(cat) {
-            if(cat === 'kindergarten') return '#e63946';
-            if(cat === 'primary') return '#1d3557';
-            return '#ffb703';
+        function getCatColor(cat) {
+            if(cat === 'kindergarten') return 'var(--red)';
+            if(cat === 'primary') return 'var(--blue)';
+            return 'var(--yellow)';
         }
     </script>
 
     <style>
-        .led-column { background: rgba(255,255,255,0.03); border: 2px solid rgba(255,255,255,0.1); padding: 10px; display: flex; flex-direction: column; }
-        .led-header { font-family: 'Archivo Black'; font-size: 1.8rem; color: #fff; padding: 15px; background: rgba(255,255,255,0.05); margin-bottom: 20px; }
+        /* Re-using your main CSS variables and grid */
+        .led-list { padding: 30px; flex: 1; display: flex; flex-direction: column; gap: 25px; background: transparent; }
         
-        .list-container { flex: 1; display: flex; flex-direction: column; gap: 20px; padding: 10px; }
+        .led-row { display: flex; flex-direction: column; gap: 8px; }
         
-        .led-row { display: flex; align-items: flex-end; gap: 15px; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .led-rank { font-family: 'Archivo Black'; font-size: 2.5rem; color: rgba(255,255,255,0.2); line-height: 1; }
-        .led-data { flex: 1; }
-        .led-name { font-family: 'Space Grotesque'; font-size: 1.4rem; color: #fff; text-transform: uppercase; margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        
-        .led-bar-box { height: 40px; background: #222; position: relative; border: 1px solid #444; }
-        .led-bar-fill { height: 100%; transition: width 2s cubic-bezier(0.23, 1, 0.32, 1); box-shadow: 0 0 15px rgba(255,255,255,0.2); }
-        .led-count { position: absolute; right: 15px; top: 5px; font-family: 'Archivo Black'; font-size: 1.5rem; color: #fff; text-shadow: 2px 2px 5px #000; }
-
-        .crown { background: rgba(255, 255, 255, 0.08); border: 2px solid var(--yellow); transform: scale(1.02); box-shadow: 0 0 30px rgba(255, 183, 3, 0.2); }
-        .crown .led-rank { color: var(--yellow); }
-        .crown .led-name { font-weight: 900; letter-spacing: 1px; }
-
-        @keyframes scanline {
-            0% { transform: translateY(-100vh); }
-            100% { transform: translateY(100vh); }
+        .artist-label { 
+            font-family: 'Montserrat', sans-serif; 
+            font-weight: 900; 
+            font-size: 1.4rem; 
+            text-transform: uppercase;
+            color: var(--black);
         }
-        body::after {
-            content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 5px; 
-            background: rgba(255,255,255,0.03); animation: scanline 8s linear infinite; pointer-events: none;
+        .rank { color: var(--red); margin-right: 10px; }
+
+        .bar-container { 
+            height: 45px; 
+            border: 5px solid var(--black); 
+            background: white; 
+            position: relative; 
+            display: flex; 
+            align-items: center;
+            box-shadow: 8px 8px 0px rgba(0,0,0,0.1);
+        }
+        
+        .bar-fill { 
+            height: 100%; 
+            transition: width 1.5s cubic-bezier(0.19, 1, 0.22, 1); 
+            border-right: 5px solid var(--black);
+        }
+        
+        .vote-number { 
+            position: absolute; 
+            right: 15px; 
+            font-family: 'Archivo Black', sans-serif; 
+            font-size: 1.8rem; 
+            color: var(--black);
+        }
+
+        /* Keep the 3x3 logo consistent */
+        .school-logo {
+            z-index: 1; /* Behind the bars */
         }
     </style>
 </body>
