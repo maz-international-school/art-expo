@@ -10,23 +10,19 @@ const categories = {
     3: { id: "secondary", label: "Secondary School" }
 };
 
-// 1. LOAD DATA
+// 1. DATA PRE-LOAD
 async function loadArtData() {
     try {
         const snap = await db.collection('artworks').get();
         allArtworks = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        console.log("System Ready: " + allArtworks.length + " artists loaded.");
-    } catch (e) {
-        console.error("Database failed to load:", e);
-    }
+        console.log("Database Ready: " + allArtworks.length + " students.");
+    } catch (e) { console.error(e); }
 }
 loadArtData();
 
-// 2. START VOTING (Attached to window so HTML can see it)
+// 2. START VOTING (Locked to Window for HTML)
 window.startVoting = async function() {
-    console.log("Start Voting Triggered");
-    
-    // Check Kill-Switch
+    // Check if locked
     try {
         const statusDoc = await db.collection('settings').doc('status').get();
         if (statusDoc.exists && statusDoc.data().isOpen === false) {
@@ -36,7 +32,7 @@ window.startVoting = async function() {
     } catch (e) { console.log("Status check skipped"); }
 
     const id = document.getElementById('voter-id').value.trim();
-    if (id.length < 5) return alert("Enter email or phone!");
+    if (id.length < 5) return alert("Please enter a valid email or phone");
     
     currentVoter = id;
     document.getElementById('step-id').classList.add('hidden');
@@ -51,12 +47,15 @@ function showStep() {
         document.getElementById('success-message').classList.remove('hidden');
         return;
     }
+
     const cat = categories[currentStep];
     document.getElementById('current-q-num').innerText = currentStep;
     document.getElementById('question-title').innerText = cat.label;
+    
     document.getElementById('search-input').value = "";
     document.getElementById('step-search').classList.remove('hidden');
     document.getElementById('step-confirm').classList.add('hidden');
+    
     setupSearch(cat.id);
 }
 
@@ -70,7 +69,7 @@ function setupSearch(categoryId) {
         const val = newInput.value.toLowerCase();
         results.innerHTML = '';
         if (val.length < 2) { results.classList.add('hidden'); return; }
-        
+
         const matches = allArtworks.filter(a => 
             a.category === categoryId && 
             a.artist.toLowerCase().includes(val)
@@ -81,11 +80,8 @@ function setupSearch(categoryId) {
             matches.forEach(m => {
                 const div = document.createElement('div');
                 div.className = 'search-item';
-                div.innerHTML = `<strong>${m.artist}</strong><br><small>${m.title || 'No Title'}</small>`;
-                div.onclick = () => { 
-                    currentArt = m; 
-                    confirmVote(); 
-                };
+                div.innerHTML = `<strong>${m.artist}</strong><br><small>${m.title || 'Untitled'}</small>`;
+                div.onclick = () => { currentArt = m; confirmVote(); };
                 results.appendChild(div);
             });
         } else { results.classList.add('hidden'); }
@@ -95,72 +91,39 @@ function setupSearch(categoryId) {
 async function confirmVote() {
     const voteCheck = await db.collection('voters').doc(`${currentVoter}_${currentArt.category}`).get();
     if (voteCheck.exists) { 
-        alert("Already voted for " + currentArt.category + "!"); 
-        nextStep(); 
+        alert("You already voted for this category!"); 
+        window.nextStep(); 
         return; 
     }
+
     document.getElementById('search-results').classList.add('hidden');
     document.getElementById('artwork-preview').innerHTML = `
         <img src="${currentArt.imageUrl || 'https://via.placeholder.com/400x300?text=Artwork'}">
         <h3>${currentArt.title || 'Untitled'}</h3><p>${currentArt.artist}</p>
-        <p style="background:var(--yellow); font-size:0.7rem;">CATEGORY: ${currentArt.category.toUpperCase()}</p>`;
+        <p style="background:var(--yellow); font-weight:900; text-align:center;">CATEGORY: ${currentArt.category.toUpperCase()}</p>
+    `;
     document.getElementById('step-search').classList.add('hidden');
     document.getElementById('step-confirm').classList.remove('hidden');
 }
 
-// 3. SUBMIT & NEXT (Also attached to window)
 window.submitVote = async function() {
     const btn = document.getElementById('vote-btn');
     btn.disabled = true;
+    btn.innerText = "INKING...";
+
     const batch = db.batch();
     batch.update(db.collection('artworks').doc(currentArt.id), { voteCount: firebase.firestore.FieldValue.increment(1) });
     batch.set(db.collection('voters').doc(`${currentVoter}_${currentArt.category}`), { timestamp: firebase.firestore.FieldValue.serverTimestamp() });
-    await batch.commit();
-    nextStep();
-};
 
-window.nextStep = function() { 
-    currentStep++; 
-    showStep(); 
-};
-
-window.backToSearch = function() { 
-    document.getElementById('step-confirm').classList.add('hidden'); 
-    document.getElementById('step-search').classList.remove('hidden'); 
-};
-// ... inside confirmVote()
-    document.getElementById('step-search').classList.add('hidden');
-    document.getElementById('step-confirm').classList.remove('hidden');
-}
-
-window.submitVote = async function() {
-    const btn = document.getElementById('vote-btn');
-    btn.disabled = true;
-    btn.innerText = "RECORDING...";
-    
     try {
-        const batch = db.batch();
-        const artRef = db.collection('artworks').doc(currentArt.id);
-        batch.update(artRef, { voteCount: firebase.firestore.FieldValue.increment(1) });
-
-        const voterRef = db.collection('voters').doc(`${currentVoter}_${currentArt.category}`);
-        batch.set(voterRef, { timestamp: firebase.firestore.FieldValue.serverTimestamp() });
-
         await batch.commit();
         window.nextStep();
     } catch (err) {
-        alert("Error! Check your internet connection.");
+        alert("Error! Check connection.");
         btn.disabled = false;
         btn.innerText = "Cast Vote";
     }
 };
 
-window.nextStep = function() {
-    currentStep++;
-    showStep();
-};
-
-window.backToSearch = function() {
-    document.getElementById('step-confirm').classList.add('hidden');
-    document.getElementById('step-search').classList.remove('hidden');
-};
+window.nextStep = function() { currentStep++; showStep(); };
+window.backToSearch = function() { document.getElementById('step-confirm').classList.add('hidden'); document.getElementById('step-search').classList.remove('hidden'); };
