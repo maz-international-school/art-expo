@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control Center | Art Expo 2026</title>
+    <title>Mission Control | Art Expo 2026</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
     
-    <!-- External Libraries -->
+    <!-- Scripts Load Order -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -25,9 +25,9 @@
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;" class="admin-grid">
             
-            <!-- COLUMN 1: SYSTEM & BULK -->
+            <!-- COLUMN 1: SYSTEM & SECURITY -->
             <div>
-                <!-- KILL SWITCH -->
+                <!-- KILL SWITCH CARD -->
                 <div class="card" style="margin-bottom: 30px; border-color: var(--black); box-shadow: 10px 10px 0px var(--black);">
                     <h2>System Status</h2>
                     <p>Voting is currently: <b id="status-label" style="font-size: 1.2rem;">LOADING...</b></p>
@@ -37,12 +37,22 @@
                     </div>
                 </div>
 
-                <!-- MEGA UPLOAD -->
+                <!-- GEOFENCE TOGGLE CARD -->
+                <div class="card" style="margin-bottom: 30px; border-color: var(--blue); box-shadow: 10px 10px 0px var(--blue);">
+                    <h2>Security Control</h2>
+                    <p>Location Check (2km): <b id="geo-status-label">LOADING...</b></p>
+                    <div style="display: flex; gap: 10px; margin-top: 15px;">
+                        <button onclick="toggleGeofence(true)" style="background: var(--black); flex: 1;">ENABLE GPS</button>
+                        <button onclick="toggleGeofence(false)" style="background: var(--blue); flex: 1;">DISABLE</button>
+                    </div>
+                </div>
+
+                <!-- MEGA UPLOAD CARD -->
                 <div class="card" style="box-shadow: 10px 10px 0px var(--yellow);">
                     <h2>Mega Upload (CSV)</h2>
                     <input type="file" id="csv-file" accept=".csv" style="padding: 10px;">
                     <button onclick="bulkUpload()" id="upload-btn" style="background: var(--blue);">Sync Namelist</button>
-                    <div id="upload-status" style="margin-top:10px; font-weight: 900; color: var(--red); font-size: 0.7rem;"></div>
+                    <div id="upload-status" style="margin-top:10px; font-weight: 900; color: var(--red); font-size: 0.8rem;"></div>
                 </div>
             </div>
 
@@ -68,41 +78,48 @@
                 <h2>Live Database</h2>
                 <div style="display: flex; gap: 10px; align-items: center;">
                     <div id="total-votes" style="background: var(--black); color: white; padding: 5px 15px; font-weight: 900;">VOTES: 0</div>
-                    <button onclick="exportResults()" style="background: var(--yellow); color: black; font-size: 0.7rem; padding: 10px 15px; width: auto;">Export Final CSV</button>
+                    <button onclick="exportResults()" style="background: var(--yellow); color: black; font-size: 0.7rem; padding: 10px 15px; width: auto; border: 2px solid black;">Export Final CSV</button>
                 </div>
             </div>
-
             <input type="text" id="db-search" placeholder="Quick find by name or code..." style="margin-top: 20px; border-color: var(--blue);">
-
-            <div id="admin-results" style="margin-top: 10px; max-height: 500px; overflow-y: auto;">
-                <!-- Records injected here -->
-            </div>
+            <div id="admin-results" style="margin-top: 10px; max-height: 500px; overflow-y: auto;"></div>
         </div>
     </div>
 
+    <!-- CONFIG & LOGIC -->
     <script src="firebase-config.js"></script>
 
     <script>
         let fullLocalData = [];
 
-        // 1. SYSTEM STATUS (KILL-SWITCH)
+        // 1. SETTINGS CONTROL (Kill-Switch & GPS Toggle)
         async function toggleSystem(isOpen) {
-            await db.collection('settings').doc('status').set({ isOpen: isOpen });
-            console.log("System toggled to: " + isOpen);
+            await db.collection('settings').doc('status').set({ isOpen: isOpen }, { merge: true });
         }
 
+        async function toggleGeofence(enabled) {
+            await db.collection('settings').doc('status').set({ isGeofenceEnabled: enabled }, { merge: true });
+        }
+
+        // Single Listener for all System Statuses
         db.collection('settings').doc('status').onSnapshot(doc => {
-            const label = document.getElementById('status-label');
             if (doc.exists) {
-                const open = doc.data().isOpen;
-                label.innerText = open ? "OPEN" : "LOCKED";
-                label.style.color = open ? "#27ae60" : "var(--red)";
+                const data = doc.data();
+                // Update Kill-Switch
+                const label = document.getElementById('status-label');
+                label.innerText = data.isOpen ? "OPEN" : "LOCKED";
+                label.style.color = data.isOpen ? "#27ae60" : "var(--red)";
+
+                // Update Geofence
+                const geoLabel = document.getElementById('geo-status-label');
+                geoLabel.innerText = data.isGeofenceEnabled ? "ACTIVE (2KM)" : "OFF (GLOBAL)";
+                geoLabel.style.color = data.isGeofenceEnabled ? "var(--red)" : "var(--blue)";
             }
         });
 
-        // 2. EXPORT RESULTS
+        // 2. EXPORT
         function exportResults() {
-            if(fullLocalData.length === 0) return alert("No data to export!");
+            if(fullLocalData.length === 0) return alert("No data!");
             let csv = "Code,Name,Title,Category,Votes\n";
             fullLocalData.forEach(d => {
                 csv += `${d.id},"${d.artist}","${d.title || ''}",${d.category},${d.voteCount || 0}\n`;
@@ -111,11 +128,11 @@
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.setAttribute('href', url);
-            a.setAttribute('download', 'art_expo_final_results.csv');
+            a.setAttribute('download', 'art_expo_results.csv');
             a.click();
         }
 
-        // 3. ADD / UPDATE
+        // 3. CRUD LOGIC (Add/Edit/Delete)
         async function addArt() {
             const code = document.getElementById('a-code').value.toUpperCase().trim();
             const title = document.getElementById('a-title').value.trim();
@@ -149,9 +166,7 @@
         }
 
         async function deleteArt(code) {
-            if(confirm("Permanently delete " + code + "?")) {
-                await db.collection('artworks').doc(code).delete();
-            }
+            if(confirm("Delete " + code + "?")) await db.collection('artworks').doc(code).delete();
         }
 
         // 4. BULK UPLOAD
@@ -169,19 +184,19 @@
                     for(let item of res.data) {
                         if(item.Code) {
                             await db.collection('artworks').doc(item.Code.trim().toUpperCase()).set({
-                                title: item.Title || "", artist: item.Name || "", category: (item.Category || "primary").toLowerCase()
+                                artist: item.Name || "Unknown", title: item.Title || "", category: (item.Category || "primary").toLowerCase()
                             }, { merge: true });
                             count++;
-                            status.innerText = `SYNCING... ${count} / ${res.data.length}`;
+                            status.innerText = `SYNCING... ${count}`;
                         }
                     }
-                    status.innerText = `✅ SYNCED ${count} RECORDS.`;
+                    status.innerText = `✅ DONE: ${count} SYNCED.`;
                     btn.disabled = false;
                 }
             });
         }
 
-        // 5. DATABASE VIEWER
+        // 5. SEARCH & LISTENER
         function renderList(filter = "") {
             const out = document.getElementById('admin-results');
             out.innerHTML = "";
@@ -189,7 +204,7 @@
                 const row = document.createElement('div');
                 row.className = "result-row";
                 row.innerHTML = `
-                    <div style="flex:1;"><b style="color:var(--red)">${d.id}</b> ${d.artist}<br><small>${d.category.toUpperCase()} | "${d.title || ''}"</small></div>
+                    <div style="flex:1;"><b style="color:var(--red)">${d.id}</b> ${d.artist}<br><small>${d.category.toUpperCase()}</small></div>
                     <div style="display:flex; align-items:center; gap:10px;">
                         <span style="background:var(--blue); color:white; padding:2px 8px;">${d.voteCount || 0}</span>
                         <button onclick="prepareEdit('${d.id}','${d.title}','${d.artist}','${d.category}')" style="background:var(--yellow); color:black; font-size:0.6rem; padding:5px; width:auto; border:2px solid black;">EDIT</button>
@@ -204,9 +219,8 @@
         db.collection('artworks').onSnapshot(snap => {
             let total = 0;
             fullLocalData = snap.docs.map(doc => {
-                const d = doc.data();
-                total += (d.voteCount || 0);
-                return { id: doc.id, ...d };
+                total += (doc.data().voteCount || 0);
+                return { id: doc.id, ...doc.data() };
             });
             document.getElementById('total-votes').innerText = "TOTAL VOTES: " + total;
             renderList(document.getElementById('db-search').value.toLowerCase());
