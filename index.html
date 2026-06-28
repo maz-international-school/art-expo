@@ -13,9 +13,7 @@
     <div class="container">
         <header>
             <h1>ART EXPO 2026</h1>
-            <div id="step-indicator" class="hidden" style="font-weight: 900; color: var(--red); margin-bottom: 10px;">
-                QUESTION <span id="current-q-num">1</span> OF 3
-            </div>
+            <p id="voter-display" class="hidden" style="font-weight: 900; color: var(--red); margin-bottom: 10px; font-size: 0.7rem;"></p>
         </header>
 
         <div class="card" id="voting-card">
@@ -23,36 +21,46 @@
             <div id="step-id">
                 <h2>Who is voting?</h2>
                 <input type="text" id="voter-id" placeholder="Email or Phone Number">
-                <button type="button" onclick="window.startVoting()">Start Voting </button>
+                <button type="button" onclick="window.startVoting()">Sign In to Vote</button>
             </div>
 
-            <!-- Step 1-3: Search Category -->
+            <!-- Step 1: Category Menu (Replacement for skipping) -->
+            <div id="step-menu" class="hidden">
+                <h2>Select Category</h2>
+                <p style="font-size: 0.8rem; margin-bottom: 20px;">Pick a group to cast your vote:</p>
+                
+                <button onclick="window.pickCategory('kindergarten')" id="btn-kg" style="margin-bottom: 15px; background: var(--black);">KINDERGARTEN</button>
+                <button onclick="window.pickCategory('primary')" id="btn-primary" style="margin-bottom: 15px; background: var(--black);">PRIMARY SCHOOL</button>
+                <button onclick="window.pickCategory('secondary')" id="btn-secondary" style="margin-bottom: 15px; background: var(--black);">SECONDARY SCHOOL</button>
+                
+                <button onclick="location.reload()" style="background:none; color: var(--blue); border:none; margin-top:10px; font-size: 0.7rem; text-decoration: underline; cursor:pointer; width: 100%;">Sign Out</button>
+            </div>
+
+            <!-- Step 2: Search artist -->
             <div id="step-search" class="hidden">
-                <h2 id="question-title">Category</h2>
-                <p id="question-desc" style="margin-bottom:10px; font-size:0.8rem;">Search for an artist:</p>
+                <h2 id="search-title">Search</h2>
                 <div style="position: relative;">
-                    <input type="text" id="search-input" placeholder="Type student name..." autocomplete="off">
+                    <input type="text" id="search-input" placeholder="Type name..." autocomplete="off">
                     <div id="search-results" class="search-suggestions hidden"></div>
                 </div>
-                <button type="button" onclick="window.nextStep()" style="background:none; color: var(--blue); border:none; margin-top:20px; font-size: 0.8rem; text-decoration: underline; cursor:pointer; width: 100%;">Skip this category</button>
+                <button onclick="window.showMenu()" style="background:none; color: var(--red); border:none; margin-top:20px; font-size: 0.8rem; text-decoration: underline; cursor:pointer; width: 100%;">Back to Menu</button>
             </div>
 
-            <!-- Step 4: Preview and Confirm -->
+            <!-- Step 3: Confirmation -->
             <div id="step-confirm" class="hidden">
                 <div id="artwork-preview"></div>
-                <button type="button" id="vote-btn" onclick="window.submitVote()">Cast Vote</button>
-                <button type="button" onclick="window.backToSearch()" style="background:none; color: var(--blue); border:none; margin-top:15px; font-size: 0.7rem; text-decoration: underline; width: 100%;">Change Selection</button>
+                <button type="button" id="vote-btn" onclick="window.submitVote()">Confirm Vote</button>
+                <button type="button" onclick="window.cancelToSearch()" style="background:none; color: var(--blue); border:none; margin-top:15px; font-size: 0.7rem; text-decoration: underline; width: 100%;">Change Selection</button>
             </div>
         </div>
 
         <div id="success-message" class="card hidden">
-            <h2 style="color: var(--red)">ALL VOTES CAST!</h2>
-            <p>Thank you for supporting MAZ Art Expo 2026.</p>
-            <button type="button" onclick="location.reload()">Finish</button>
+            <h2 style="color: var(--red)">VOTE CAST!</h2>
+            <p>Your vote has been recorded.</p>
+            <button type="button" onclick="window.showMenu()">Back to Categories</button>
         </div>
     </div>
 
-    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="firebase-config.js"></script>
