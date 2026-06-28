@@ -1,5 +1,5 @@
 // ==========================================
-// ART EXPO 2026 - CORE ENGINE (GEOFENCE VER.)
+// ART EXPO 2026 - CORE VOTING ENGINE
 // ==========================================
 
 let currentVoter = "";
@@ -7,10 +7,10 @@ let currentArt = null;
 let allArtworks = []; 
 let currentStep = 1; 
 
-// COORDINATES FOR MAZ SHAH ALAM (Jalan Kristal)
+// MAZ Shah Alam Coordinates
 const SCHOOL_LAT = 3.0685; 
 const SCHOOL_LON = 101.4900;
-const MAX_DISTANCE_KM = 2.0; // 2 km timeline
+const RADIUS_KM = 2.0; 
 
 const categories = {
     1: { id: "kindergarten", label: "Kindergarten" },
@@ -18,67 +18,97 @@ const categories = {
     3: { id: "secondary", label: "Secondary School" }
 };
 
-// 1. DATA PRE-LOAD
+// 1. INITIALIZE: Load artists from Cloud
 async function loadArtData() {
     try {
         const snap = await db.collection('artworks').get();
         allArtworks = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        console.log("Aura System: " + allArtworks.length + " artists ready.");
-    } catch (e) { console.error("DB Load Error:", e); }
+        console.log("System Ready: " + allArtworks.length + " artists loaded.");
+    } catch (e) {
+        console.error("Database Error:", e);
+    }
 }
 loadArtData();
 
-// 2. START VOTING (GPS VERIFICATION)
+// 2. START VOTING (With Remote Geofence Toggle)
 window.startVoting = async function() {
-    // A. Check Remote Kill-Switch
-    try {
-        const statusDoc = await db.collection('settings').doc('status').get();
-        if (statusDoc.exists && statusDoc.data().isOpen === false) {
-            alert("VOTING CLOSED: The competition has ended.");
-            return;
-        }
-    } catch (e) { console.log("Status check skipped"); }
+    const btn = document.querySelector('#step-id button');
+    const idInput = document.getElementById('voter-id');
+    const id = idInput.value.trim().toLowerCase();
 
-    const id = document.getElementById('voter-id').value.trim().toLowerCase();
-    if (id.length < 5) return alert("Please enter a valid email or phone number.");
-
-    // B. THE GEOFENCE CHECK (THE UNBIASED SHIELD)
-    if (!navigator.geolocation) {
-        alert("GPS Required: Your browser doesn't support location services.");
+    if (id.length < 5) {
+        alert("Please enter a valid email or phone number.");
         return;
     }
 
-    const btn = document.querySelector('#step-id button');
-    btn.innerText = "VERIFYING LOCATION...";
+    btn.innerText = "CHECKING SYSTEM...";
     btn.disabled = true;
 
-    navigator.geolocation.getCurrentPosition(
-        async (position) => {
-            const uLat = position.coords.latitude;
-            const uLon = position.coords.longitude;
-            const dist = calculateDistance(SCHOOL_LAT, SCHOOL_LON, uLat, uLon);
+    try {
+        // Fetch Remote Settings from Admin Panel
+        const statusDoc = await db.collection('settings').doc('status').get();
+        const settings = statusDoc.exists ? statusDoc.data() : { isOpen: true, isGeofenceEnabled: true };
 
-            if (dist > MAX_DISTANCE_KM) {
-                alert(`ACCESS DENIED: You are ${dist.toFixed(2)}km away. Voting is only permitted for visitors ON-SITE at the Art Expo.`);
-                btn.innerText = "Start Voting";
+        // Check if Voting is Locked (Kill-Switch)
+        if (settings.isOpen === false) {
+            alert("VOTING CLOSED: The competition has ended or is not yet open.");
+            btn.innerText = "Start Voting";
+            btn.disabled = false;
+            return;
+        }
+
+        // Check if Geofencing is Enabled
+        if (settings.isGeofenceEnabled) {
+            btn.innerText = "VERIFYING LOCATION...";
+            
+            if (!navigator.geolocation) {
+                alert("GPS Error: Your browser doesn't support location services.");
                 btn.disabled = false;
                 return;
             }
 
-            // If location is valid, proceed
-            currentVoter = id;
-            document.getElementById('step-id').classList.add('hidden');
-            document.getElementById('step-indicator').classList.remove('hidden');
-            showStep();
-        },
-        (error) => {
-            alert("LOCATION REQUIRED: You must click 'Allow' to verify you are at the MAZ Art Expo. If you clicked 'Deny', please refresh the page or check your browser settings.");
-            btn.innerText = "Start Voting";
-            btn.disabled = false;
-        },
-        { enableHighAccuracy: true, timeout: 10000 }
-    );
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    const uLat = position.coords.latitude;
+                    const uLon = position.coords.longitude;
+                    const dist = calculateDistance(SCHOOL_LAT, SCHOOL_LON, uLat, uLon);
+
+                    if (dist > RADIUS_KM) {
+                        alert(`ACCESS DENIED: You are ${dist.toFixed(1)}km away. Voting is only allowed on-site at MAZ Shah Alam.`);
+                        btn.innerText = "Start Voting";
+                        btn.disabled = false;
+                        return;
+                    }
+
+                    // On-site Success
+                    proceedToVoting(id);
+                },
+                (error) => {
+                    alert("LOCATION REQUIRED: You must 'Allow' location access to verify you are at the Expo.");
+                    btn.innerText = "Start Voting";
+                    btn.disabled = false;
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
+        } else {
+            // GEOFENCING DISABLED: Skip to voting
+            proceedToVoting(id);
+        }
+
+    } catch (e) {
+        console.error(e);
+        alert("Connection error. Please try again.");
+        btn.disabled = false;
+        btn.innerText = "Start Voting";
+    }
 };
+
+function proceedToVoting(voterId) {
+    currentVoter = voterId;
+    document.getElementById('step-id').classList.add('hidden');
+    document.getElementById('step-indicator').classList.remove('hidden');
+    showStep();
+}
 
 // 3. STEPPER LOGIC
 function showStep() {
@@ -86,9 +116,10 @@ function showStep() {
         finishExpo();
         return;
     }
+
     const cat = categories[currentStep];
 
-    // SECURITY: Device Lock Check
+    // DEVICE LOCK CHECK (Same phone can't vote twice)
     if (localStorage.getItem(`voted_${cat.id}`)) {
         currentStep++;
         showStep();
@@ -100,10 +131,11 @@ function showStep() {
     document.getElementById('search-input').value = "";
     document.getElementById('step-search').classList.remove('hidden');
     document.getElementById('step-confirm').classList.add('hidden');
+    
     setupSearch(cat.id);
 }
 
-// 4. SEARCH ENGINE
+// 4. SMART SEARCH
 function setupSearch(categoryId) {
     const input = document.getElementById('search-input');
     const results = document.getElementById('search-results');
@@ -117,7 +149,7 @@ function setupSearch(categoryId) {
 
         const matches = allArtworks.filter(a => 
             a.category === categoryId && 
-            (a.artist.toLowerCase().includes(val) || (a.title && a.title.toLowerCase().includes(val)))
+            a.artist.toLowerCase().includes(val)
         ).slice(0, 6); 
 
         if (matches.length > 0) {
@@ -135,31 +167,33 @@ function setupSearch(categoryId) {
 
 // 5. CONFIRMATION
 window.confirmVote = async function() {
-    // Server-side Double-Vote Check
+    // DB Check for double voting
     try {
         const voteCheck = await db.collection('voters').doc(`${currentVoter}_${currentArt.category}`).get();
         if (voteCheck.exists) { 
-            alert("Already voted for " + currentArt.category.toUpperCase()); 
+            alert("This ID has already voted for " + currentArt.category.toUpperCase()); 
             localStorage.setItem(`voted_${currentArt.category}`, "true");
             window.nextStep(); 
             return; 
         }
-    } catch(e) { console.log("Checking DB..."); }
+    } catch(e) { console.log("Verifying ID..."); }
 
     document.getElementById('search-results').classList.add('hidden');
     document.getElementById('artwork-preview').innerHTML = `
         <img src="${currentArt.imageUrl || 'https://via.placeholder.com/400x300?text=Artwork'}" style="width:100%;">
-        <div style="padding:15px;">
-            <h3>${currentArt.title || 'Untitled'}</h3>
+        <div style="padding:15px; text-align:left;">
+            <h3 style="margin:0;">${currentArt.title || 'Untitled'}</h3>
             <p>Artist: ${currentArt.artist}</p>
         </div>
-        <p style="background:var(--yellow); font-weight:900; text-align:center; padding:10px; border-top:4px solid black;">CATEGORY: ${categories[currentStep].label.toUpperCase()}</p>
+        <p style="background:var(--yellow); font-weight:900; text-align:center; padding:10px; border-top:4px solid black; margin:0;">
+            CATEGORY: ${categories[currentStep].label.toUpperCase()}
+        </p>
     `;
     document.getElementById('step-search').classList.add('hidden');
     document.getElementById('step-confirm').classList.remove('hidden');
 };
 
-// 6. FINAL VOTE SUBMISSION
+// 6. SUBMIT
 window.submitVote = async function() {
     const btn = document.getElementById('vote-btn');
     btn.disabled = true;
@@ -174,13 +208,13 @@ window.submitVote = async function() {
         localStorage.setItem(`voted_${currentArt.category}`, "true");
         window.nextStep();
     } catch (err) {
-        alert("Connection error! Please try again.");
+        alert("Error! Check connection.");
         btn.disabled = false;
         btn.innerText = "Cast Vote";
     }
 };
 
-// 7. UTILITIES
+// 7. UTILS
 window.nextStep = function() { currentStep++; showStep(); };
 window.backToSearch = function() { 
     document.getElementById('step-confirm').classList.add('hidden'); 
@@ -193,14 +227,11 @@ function finishExpo() {
     document.getElementById('success-message').classList.remove('hidden');
 }
 
-// MATHEMATICAL FORMULA FOR DISTANCE
 function calculateDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371; // Earth radius in KM
+    const R = 6371;
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     return R * c; 
 }
