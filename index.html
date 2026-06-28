@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Vote | MAZ Art Expo 2026</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
@@ -19,21 +19,19 @@
         <div class="card" id="voting-card">
             <!-- Step 0: Identity -->
             <div id="step-id">
-                <h2>Who is voting?</h2>
+                <h2>Cast Your Vote</h2>
                 <input type="text" id="voter-id" placeholder="Email or Phone Number">
-                <button type="button" onclick="window.startVoting()">Sign In to Vote</button>
+                <button type="button" onclick="window.startVoting()">Vote Now</button>
             </div>
 
-            <!-- Step 1: Category Menu (Replacement for skipping) -->
+            <!-- Step 1: Category Menu -->
             <div id="step-menu" class="hidden">
                 <h2>Select Category</h2>
-                <p style="font-size: 0.8rem; margin-bottom: 20px;">Pick a group to cast your vote:</p>
-                
-                <button onclick="window.pickCategory('kindergarten')" id="btn-kg" style="margin-bottom: 15px; background: var(--black);">KINDERGARTEN</button>
+                <button onclick="window.pickCategory('kindergarten')" id="btn-kindergarten" style="margin-bottom: 15px; background: var(--black);">KINDERGARTEN</button>
                 <button onclick="window.pickCategory('primary')" id="btn-primary" style="margin-bottom: 15px; background: var(--black);">PRIMARY SCHOOL</button>
                 <button onclick="window.pickCategory('secondary')" id="btn-secondary" style="margin-bottom: 15px; background: var(--black);">SECONDARY SCHOOL</button>
                 
-                <button onclick="location.reload()" style="background:none; color: var(--blue); border:none; margin-top:10px; font-size: 0.7rem; text-decoration: underline; cursor:pointer; width: 100%;">Sign Out</button>
+                <button onclick="location.reload()" style="background:none; color: var(--blue); border:none; margin-top:10px; font-size: 0.7rem; text-decoration: underline; cursor:pointer; width: 100%;">Change User</button>
             </div>
 
             <!-- Step 2: Search artist -->
@@ -43,7 +41,7 @@
                     <input type="text" id="search-input" placeholder="Type name..." autocomplete="off">
                     <div id="search-results" class="search-suggestions hidden"></div>
                 </div>
-                <button onclick="window.showMenu()" style="background:none; color: var(--red); border:none; margin-top:20px; font-size: 0.8rem; text-decoration: underline; cursor:pointer; width: 100%;">Back to Menu</button>
+                <button onclick="window.showMenu()" style="background:none; color: var(--red); border:none; margin-top:20px; font-size: 0.8rem; text-decoration: underline; cursor:pointer; width: 100%;">Back to Categories</button>
             </div>
 
             <!-- Step 3: Confirmation -->
@@ -55,9 +53,9 @@
         </div>
 
         <div id="success-message" class="card hidden">
-            <h2 style="color: var(--red)">VOTE CAST!</h2>
+            <h2 style="color: var(--red)">SUCCESS!</h2>
             <p>Your vote has been recorded.</p>
-            <button type="button" onclick="window.showMenu()">Back to Categories</button>
+            <button type="button" onclick="window.showMenu()">Vote in another category</button>
         </div>
     </div>
 
