@@ -3,58 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Vote | MAZ Art Expo 2026</title>
+    <title>MAZ Art Expo 2026 | Vote</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+    <!-- Confetti Library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 <body>
+    <!-- Floating Bauhaus Shapes (Beautification) -->
+    <div class="shape circle"></div>
+    <div class="shape square"></div>
+    <div class="shape triangle"></div>
+
     <img src="image1.png" class="school-logo" alt="MAZ Logo">
 
     <div class="container">
         <header>
             <h1>ART EXPO 2026</h1>
-            <p id="voter-display" class="hidden" style="font-weight: 900; color: var(--red); margin-bottom: 10px; font-size: 0.7rem;"></p>
+            <p id="voter-display" class="hidden" style="font-weight: 900; color: var(--red); margin-top: 10px; font-size: 0.7rem; text-transform: uppercase;"></p>
         </header>
 
         <div class="card" id="voting-card">
-            <!-- Step 0: Identity -->
+            <!-- STEP 0: START -->
             <div id="step-id">
                 <h2>Cast Your Vote</h2>
+                <p style="font-size: 0.8rem; margin-bottom: 20px; color: #666;">Enter your Email or Phone to begin.</p>
                 <input type="text" id="voter-id" placeholder="Email or Phone Number">
                 <button type="button" onclick="window.startVoting()">Vote Now</button>
             </div>
 
-            <!-- Step 1: Category Menu -->
+            <!-- STEP 1: CATEGORY MENU -->
             <div id="step-menu" class="hidden">
                 <h2>Select Category</h2>
-                <button onclick="window.pickCategory('kindergarten')" id="btn-kindergarten" style="margin-bottom: 15px; background: var(--black);">KINDERGARTEN</button>
-                <button onclick="window.pickCategory('primary')" id="btn-primary" style="margin-bottom: 15px; background: var(--black);">PRIMARY SCHOOL</button>
-                <button onclick="window.pickCategory('secondary')" id="btn-secondary" style="margin-bottom: 15px; background: var(--black);">SECONDARY SCHOOL</button>
-                
+                <button onclick="window.pickCategory('kindergarten')" id="btn-kindergarten" style="margin-bottom:15px; background:var(--black);">KINDERGARTEN</button>
+                <button onclick="window.pickCategory('primary')" id="btn-primary" style="margin-bottom:15px; background:var(--black);">PRIMARY</button>
+                <button onclick="window.pickCategory('secondary')" id="btn-secondary" style="margin-bottom:15px; background:var(--black);">SECONDARY</button>
+                <button onclick="location.reload()" style="background:none; color:var(--blue); border:none; text-decoration:underline; font-size:0.7rem; width:100%;">Sign Out</button>
             </div>
 
-            <!-- Step 2: Search artist -->
+            <!-- STEP 2: SEARCH -->
             <div id="step-search" class="hidden">
                 <h2 id="search-title">Search</h2>
-                <div style="position: relative;">
-                    <input type="text" id="search-input" placeholder="Type name..." autocomplete="off">
+                <p style="font-size:0.7rem; font-weight:900; color:var(--red); margin-bottom:15px;">BOOTH NO. OR STUDENT NAME</p>
+                <div style="position:relative;">
+                    <input type="text" id="search-input" placeholder="e.g. B101 or Sarah..." autocomplete="off">
                     <div id="search-results" class="search-suggestions hidden"></div>
                 </div>
-                <button onclick="window.showMenu()" style="background:none; color: var(--red); border:none; margin-top:20px; font-size: 0.8rem; text-decoration: underline; cursor:pointer; width: 100%;">Back to Categories</button>
+                <button onclick="window.showMenu()" style="background:none; color:var(--red); border:none; text-decoration:underline; font-size:0.7rem; margin-top:20px; width:100%;">Back to Menu</button>
             </div>
 
-            <!-- Step 3: Confirmation -->
+            <!-- STEP 3: CONFIRM -->
             <div id="step-confirm" class="hidden">
                 <div id="artwork-preview"></div>
-                <button type="button" id="vote-btn" onclick="window.submitVote()">Confirm Vote</button>
-                <button type="button" onclick="window.cancelToSearch()" style="background:none; color: var(--blue); border:none; margin-top:15px; font-size: 0.7rem; text-decoration: underline; width: 100%;">Change Selection</button>
+                <button type="button" id="vote-btn" onclick="window.submitVote()">Confirm Selection</button>
+                <button onclick="window.cancelToSearch()" style="background:none; color:var(--blue); border:none; text-decoration:underline; font-size:0.7rem; margin-top:15px; width:100%;">Change Artist</button>
             </div>
         </div>
 
-        <div id="success-message" class="card hidden">
-            <h2 style="color: var(--red)">SUCCESS!</h2>
-            <p>Your vote has been recorded.</p>
-            <button type="button" onclick="window.showMenu()">Vote in another category</button>
+        <!-- SUCCESS -->
+        <div id="success-message" class="card hidden" style="text-align: center;">
+            <h2 style="color: var(--red); font-size: 2.5rem;">SUCCESS!</h2>
+            <p style="font-weight: 700;">Your vote has been recorded.</p>
+            <button type="button" onclick="window.showMenu()">Vote in another Category</button>
         </div>
     </div>
 
