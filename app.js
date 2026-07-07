@@ -1,197 +1,205 @@
 // ==========================================
-// ADMIN CONTROL SCRIPT - YEAR-GROUP ENABLED
+// MAZ ART EXPO 2026 - CORE ENGINE (FIXED)
 // ==========================================
 
-let fullLocalData = []; // Local cache of the database for instant searching
+let currentVoter = "";
+let currentArt = null;
+let allArtworks = []; 
 
-// 1. SYSTEM SETTINGS (Kill-Switch & GPS Toggle)
-async function toggleSet(key, value) {
+// TARGET: MAZ Shah Alam
+const TARGET_LAT = 3.0681; 
+const TARGET_LON = 101.4895;
+const RADIUS_KM = 5.0; 
+
+// 1. DATA PRE-LOAD
+async function loadArtData() {
     try {
-        await db.collection('settings').doc('status').set({ [key]: value }, { merge: true });
-        console.log(`Setting ${key} updated to ${value}`);
-    } catch (e) { alert("Error updating settings: " + e.message); }
-}
-
-// Watch System Status in real-time
-db.collection('settings').doc('status').onSnapshot(doc => {
-    if (doc.exists) {
-        const data = doc.data();
-        const statusLabel = document.getElementById('status-label');
-        const geoLabel = document.getElementById('geo-label');
-
-        if (statusLabel) {
-            statusLabel.innerText = data.isOpen ? 'OPEN' : 'LOCKED';
-            statusLabel.style.color = data.isOpen ? '#27ae60' : 'var(--red)';
-        }
-        if (geoLabel) {
-            geoLabel.innerText = data.isGeofenceEnabled ? 'ACTIVE' : 'OFF';
-            geoLabel.style.color = data.isGeofenceEnabled ? 'var(--red)' : 'var(--blue)';
-        }
-    }
-});
-
-// 2. MANUAL DATA MANAGEMENT (Save / Update)
-async function saveArt() {
-    const code = document.getElementById('a-code').value.toUpperCase().trim();
-    const artist = document.getElementById('a-artist').value.trim();
-    const title = document.getElementById('a-title').value.trim();
-    const year = document.getElementById('a-year').value.toUpperCase().trim(); // Year Group
-    const cat = document.getElementById('a-cat').value;
-
-    if (!code || !artist || !year) return alert("Code, Name, and Year Group are required!");
-
-    try {
-        await db.collection('artworks').doc(code).set({
-            artist: artist,
-            title: title || "Untitled",
-            year: year,
-            category: cat
-        }, { merge: true });
-
-        alert("Database Updated: " + code);
-        resetForm();
-    } catch (e) { alert("Error saving: " + e.message); }
-}
-
-function resetForm() {
-    document.getElementById('a-code').value = "";
-    document.getElementById('a-code').disabled = false;
-    document.getElementById('a-artist').value = "";
-    document.getElementById('a-title').value = "";
-    document.getElementById('a-year').value = "";
-    document.getElementById('form-title').innerText = "Add/Edit Artist";
-    document.getElementById('cancel-btn').classList.add('hidden');
-}
-
-// 3. EDIT & DELETE LOGIC (ID-Based Lookup for Stability)
-function prepareEdit(id) {
-    const student = fullLocalData.find(d => d.id === id);
-    if (!student) return alert("Error finding student data locally.");
-
-    // Populate the form
-    document.getElementById('a-code').value = student.id;
-    document.getElementById('a-code').disabled = true; // Lock ID during edit
-    document.getElementById('a-artist').value = student.artist;
-    document.getElementById('a-title').value = student.title || "";
-    document.getElementById('a-year').value = student.year || "";
-    document.getElementById('a-cat').value = student.category;
-
-    document.getElementById('form-title').innerText = "Editing: " + student.id;
-    document.getElementById('cancel-btn').classList.remove('hidden');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-async function deleteArt(id) {
-    if (confirm(`PERMANENTLY DELETE ${id}? Votes will be lost.`)) {
-        try {
-            await db.collection('artworks').doc(id).delete();
-        } catch (e) { alert("Delete failed: " + e.message); }
+        const snap = await db.collection('artworks').get();
+        allArtworks = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        console.log("Database Sync: " + allArtworks.length + " entries ready.");
+    } catch (e) {
+        console.log("Retrying connection...");
+        setTimeout(loadArtData, 2000);
     }
 }
+loadArtData();
 
-// 4. SMART BULK UPLOAD (Handles Header Case Sensitivity)
-async function bulkUpload() {
-    const file = document.getElementById('csv-file').files[0];
-    const status = document.getElementById('upload-status');
-    
-    if (!file) return alert("Please select a CSV file first!");
+// 2. START VOTING (THE UNBREAKABLE VERSION)
+window.startVoting = async function() {
+    const idInput = document.getElementById('voter-id');
+    const id = idInput.value.trim().toLowerCase();
+    const btn = document.querySelector('#step-id button');
 
-    status.innerText = "PROCESSING...";
-    
-    Papa.parse(file, {
-        header: true,
-        skipEmptyLines: true,
-        complete: async (results) => {
-            let count = 0;
-            const data = results.data;
+    if (id.length < 5) return alert("Please enter your email or phone number.");
 
-            for (let item of data) {
-                // Header Normalization (Checks Code, code, CODE etc)
-                const code = (item.Code || item.code || item.CODE || "").trim().toUpperCase();
-                const name = (item.Name || item.name || item.NAME || "").trim();
-                const title = (item.Title || item.title || item.TITLE || "").trim();
-                const category = (item.Category || item.category || item.CATEGORY || "primary").toLowerCase().trim();
-                const year = (item.Year || item.year || item.YEAR || "Y1").toUpperCase().trim();
+    // Visual Feedback
+    btn.innerText = "CHECKING..."; 
+    btn.disabled = true;
 
-                if (code) {
-                    await db.collection('artworks').doc(code).set({
-                        artist: name || "Unknown Artist",
-                        title: title || "",
-                        category: category,
-                        year: year,
-                        voteCount: 0 // Initialize at zero for new uploads
-                    }, { merge: true });
-                    count++;
-                    status.innerText = `SYNCING: ${count} / ${data.length}`;
-                }
+    try {
+        // A. Check Admin Controls
+        const statusDoc = await db.collection('settings').doc('status').get();
+        
+        // If settings don't exist yet, we assume open and no GPS for safety
+        const settings = statusDoc.exists ? statusDoc.data() : { isOpen: true, isGeofenceEnabled: false };
+
+        if (!settings.isOpen) {
+            alert("VOTING CLOSED: The competition is currently locked.");
+            resetVoteButton(btn);
+            return;
+        }
+
+        // B. Geolocation Verification
+        if (settings.isGeofenceEnabled) {
+            btn.innerText = "VERIFYING GPS...";
+            
+            if (!navigator.geolocation) {
+                alert("GPS Error: Your browser doesn't support location services.");
+                resetVoteButton(btn);
+                return;
             }
-            status.innerText = `✅ DONE: ${count} RECORDS LOADED.`;
-            alert("Success! 13 Prize Groups are now synchronized.");
+
+            // Using a Promise to wrap the Geolocation callback for cleaner async/await
+            const position = await new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, { 
+                    enableHighAccuracy: true, 
+                    timeout: 8000 
+                });
+            }).catch(err => {
+                let msg = "Location access denied. Please 'Allow' location to cast your vote.";
+                if(err.code === 3) msg = "GPS Timeout. Please check your signal.";
+                alert(msg);
+                return null;
+            });
+
+            if (!position) {
+                resetVoteButton(btn);
+                return;
+            }
+
+            const dist = calculateDistance(TARGET_LAT, TARGET_LON, position.coords.latitude, position.coords.longitude);
+            console.log(`User is ${dist.toFixed(2)} km away.`);
+
+            if (dist > RADIUS_KM) {
+                alert(`ACCESS DENIED: You are ${dist.toFixed(1)}km away. Voting only allowed within 5km of MAZ.`);
+                resetVoteButton(btn);
+                return;
+            }
+        }
+
+        // SUCCESS PATH
+        finishSignIn(id);
+
+    } catch (e) {
+        console.error(e);
+        alert("System Error: Ensure you have internet and try again.");
+        resetVoteButton(btn);
+    }
+};
+
+function resetVoteButton(btn) {
+    btn.innerText = "Vote Now";
+    btn.disabled = false;
+}
+
+function finishSignIn(id) {
+    currentVoter = id;
+    document.getElementById('voter-display').innerText = "VOTER: " + id;
+    document.getElementById('voter-display').classList.remove('hidden');
+    document.getElementById('step-id').classList.add('hidden');
+    window.showMenu();
+}
+
+// 3. MENU & SEARCH (Hybrid System)
+window.showMenu = function() {
+    document.querySelectorAll('#voting-card > div, #success-message').forEach(div => div.classList.add('hidden'));
+    document.getElementById('step-menu').classList.remove('hidden');
+    ['kindergarten', 'primary', 'secondary'].forEach(cat => {
+        const btn = document.getElementById(`btn-${cat}`);
+        if (localStorage.getItem(`voted_${cat}`)) {
+            btn.innerText = cat.toUpperCase() + " (VOTED)";
+            btn.classList.add('voted-btn');
+        } else {
+            btn.innerText = cat.toUpperCase();
+            btn.classList.remove('voted-btn');
         }
     });
-}
+};
 
-// 5. EXPORT FINAL RESULTS
-function exportCSV() {
-    if (fullLocalData.length === 0) return alert("No data to export!");
+window.pickCategory = function(cat) {
+    document.getElementById('step-menu').classList.add('hidden');
+    document.getElementById('step-search').classList.remove('hidden');
+    document.getElementById('search-title').innerText = cat.toUpperCase();
+    document.getElementById('search-input').value = "";
+    setupSearch(cat);
+};
 
-    let csv = "Code,Name,Title,Category,Year,Votes\n";
-    fullLocalData.forEach(d => {
-        csv += `${d.id},"${d.artist}","${d.title || ''}",${d.category},${d.year},${d.voteCount || 0}\n`;
-    });
-
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.setAttribute('href', url);
-    a.setAttribute('download', 'art_expo_13_winners_results.csv');
-    a.click();
-}
-
-// 6. DATABASE SEARCH & LIST RENDER
-function renderList(filter = "") {
-    const out = document.getElementById('admin-results');
-    out.innerHTML = "";
-
-    const filtered = fullLocalData.filter(d => 
-        d.id.toLowerCase().includes(filter) || 
-        d.artist.toLowerCase().includes(filter) ||
-        (d.year && d.year.toLowerCase().includes(filter))
-    );
-
-    filtered.forEach(d => {
-        const row = document.createElement('div');
-        row.className = "result-row";
-        row.innerHTML = `
-            <div style="flex:1;">
-                <b style="color:var(--red)">${d.id}</b> ${d.artist}
-                <br><small>${d.year || 'No Year'} | ${d.category.toUpperCase()} | "${d.title || 'Untitled'}"</small>
-            </div>
-            <div style="display:flex; align-items:center; gap:10px;">
-                <span style="background:var(--blue); color:white; padding:2px 8px;">${d.voteCount || 0}</span>
-                <button onclick="prepareEdit('${d.id}')" 
-                        style="background:var(--yellow); color:black; font-size:0.6rem; padding:5px; width:auto; border:2px solid black; cursor:pointer;">EDIT</button>
-                <button onclick="deleteArt('${d.id}')" 
-                        style="background:var(--red); color:white; font-size:0.6rem; padding:5px; width:auto; border:2px solid black; cursor:pointer;">DEL</button>
-            </div>
-        `;
-        out.appendChild(row);
+function setupSearch(catId) {
+    const input = document.getElementById('search-input');
+    const results = document.getElementById('search-results');
+    const newInput = input.cloneNode(true);
+    input.parentNode.replaceChild(newInput, input);
+    newInput.addEventListener('input', () => {
+        const val = newInput.value.toLowerCase(); results.innerHTML = '';
+        if (val.length < 1) { results.classList.add('hidden'); return; }
+        
+        // HYBRID SEARCH: Match Code OR Name
+        const matches = allArtworks.filter(a => a.category === catId && (a.id.toLowerCase().includes(val) || a.artist.toLowerCase().includes(val))).slice(0, 6);
+        
+        if (matches.length > 0) {
+            results.classList.remove('hidden');
+            matches.forEach(m => {
+                const div = document.createElement('div'); div.className = 'search-item';
+                div.innerHTML = `<span style="background:var(--red); color:white; padding:2px 6px; font-size:0.6rem; margin-right:8px;">${m.id}</span> <strong>${m.artist}</strong><br><small style="margin-left:45px;">Year: ${m.year || 'N/A'}</small>`;
+                div.onclick = () => { currentArt = m; window.confirmVote(); };
+                results.appendChild(div);
+            });
+        } else { results.classList.add('hidden'); }
     });
 }
 
-// 7. REAL-TIME LISTENER
-document.getElementById('db-search').oninput = (e) => renderList(e.target.value.toLowerCase());
-
-db.collection('artworks').onSnapshot(snap => {
-    let total = 0;
-    fullLocalData = snap.docs.map(doc => {
-        const d = doc.data();
-        total += (d.voteCount || 0);
-        return { id: doc.id, ...d };
-    });
-
-    const totalVotesDisplay = document.getElementById('total-votes');
-    if (totalVotesDisplay) totalVotesDisplay.innerText = "TOTAL VOTES: " + total;
+// 4. PREVIEW & SUBMISSION
+window.confirmVote = async function() {
+    const voteCheck = await db.collection('voters').doc(`${currentVoter}_${currentArt.category}`).get();
+    if (voteCheck.exists) { 
+        alert("Already voted for this category!"); 
+        localStorage.setItem(`voted_${currentArt.category}`, "true"); 
+        window.showMenu(); return; 
+    }
     
-    renderList(document.getElementById('db-search').value.toLowerCase());
-});
+    document.getElementById('search-results').classList.add('hidden');
+    document.getElementById('artwork-preview').innerHTML = `
+        <div style="padding:40px 20px; text-align:center;">
+            <p style="font-weight:900; color:var(--red); margin:0; font-size:0.7rem; letter-spacing:2px;">BOOTH: ${currentArt.id}</p>
+            <h3 style="margin:20px 0; font-size:2rem; font-family:'Archivo Black'; text-transform:uppercase;">${currentArt.title || 'UNTITLED'}</h3>
+            <div style="width:40px; height:6px; background:var(--black); margin:0 auto 15px auto;"></div>
+            <p style="font-weight:700; font-size:1.2rem; margin:0;">Artist: ${currentArt.artist}</p>
+        </div>
+        <p style="background:var(--yellow); font-weight:900; text-align:center; padding:15px; border-top:6px solid black; margin:0;">${currentArt.category.toUpperCase()}</p>`;
+    
+    document.getElementById('step-search').classList.add('hidden');
+    document.getElementById('step-confirm').classList.remove('hidden');
+};
+
+window.submitVote = async function() {
+    const btn = document.getElementById('vote-btn'); btn.disabled = true; btn.innerText = "INKING...";
+    try {
+        const batch = db.batch();
+        batch.update(db.collection('artworks').doc(currentArt.id), { voteCount: firebase.firestore.FieldValue.increment(1) });
+        batch.set(db.collection('voters').doc(`${currentVoter}_${currentArt.category}`), { timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+        await batch.commit();
+        localStorage.setItem(`voted_${currentArt.category}`, "true");
+        // CONFETTI CELEBRATION
+        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#e63946', '#1d3557', '#ffb703'] });
+        document.getElementById('step-confirm').classList.add('hidden');
+        document.getElementById('success-message').classList.remove('hidden');
+    } catch (e) { alert("Error! Check connection."); btn.disabled = false; btn.innerText = "Confirm Selection"; }
+};
+
+window.cancelToSearch = function() { document.getElementById('step-confirm').classList.add('hidden'); document.getElementById('step-search').classList.remove('hidden'); };
+
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
