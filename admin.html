@@ -1,224 +1,58 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mission Control | Art Expo 2026</title>
+    <meta charset="UTF-8"><title>Control Center | Art Expo 2026</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
 <body style="display: block; padding: 50px 20px; overflow-x: hidden;">
-
-    <img src="image1.png" class="school-logo" alt="Logo">
-
+    <img src="image1.png" class="school-logo">
     <div class="container" style="max-width: 1000px; text-align: left;">
-        <header style="margin-bottom: 40px;">
-            <h1 style="justify-content: flex-start;">EXPO CONTROL</h1>
-            <p style="background: var(--red); color: white;">Mission Control • Year-Group Enabled</p>
-        </header>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;" class="admin-grid">
-            
-            <!-- COLUMN 1: SYSTEM & SECURITY -->
+        <header style="margin-bottom: 40px;"><h1>EXPO CONTROL</h1><p style="background:var(--red); color:white;">Mission Control • MAZ Art Expo 2026</p></header>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
             <div>
-                <div class="card" style="margin-bottom: 30px; border-color: var(--black);">
+                <div class="card">
                     <h2>System Status</h2>
                     <p>Voting: <b id="status-label">LOADING</b> | GPS: <b id="geo-label">LOADING</b></p>
-                    <div style="display: flex; gap: 10px; margin-top: 15px;">
-                        <button onclick="toggleSet('isOpen', true)" style="background: #27ae60; flex: 1; font-size: 0.8rem;">UNLOCK</button>
-                        <button onclick="toggleSet('isOpen', false)" style="background: var(--black); flex: 1; font-size: 0.8rem;">LOCK</button>
-                    </div>
-                    <div style="display: flex; gap: 10px; margin-top: 10px;">
-                        <button onclick="toggleSet('isGeofenceEnabled', true)" style="background: var(--blue); flex: 1; font-size: 0.8rem;">GPS ON</button>
-                        <button onclick="toggleSet('isGeofenceEnabled', false)" style="background: var(--black); flex: 1; font-size: 0.8rem;">GPS OFF</button>
-                    </div>
+                    <div style="display:flex; gap:10px;"><button onclick="toggleSet('isOpen',true)" style="background:#27ae60;">UNLOCK</button><button onclick="toggleSet('isOpen',false)" style="background:var(--black);">LOCK</button></div>
+                    <div style="display:flex; gap:10px; margin-top:10px;"><button onclick="toggleSet('isGeofenceEnabled',true)" style="background:var(--blue);">GPS ON</button><button onclick="toggleSet('isGeofenceEnabled',false)" style="background:var(--black);">GPS OFF</button></div>
                 </div>
-
-                <div class="card" style="box-shadow: 10px 10px 0px var(--yellow);">
-                    <h2>Mega Upload (CSV)</h2>
-                    <p style="font-size: 0.7rem; margin-bottom: 10px;">Headers: Code, Name, Title, Category, Year</p>
-                    <input type="file" id="csv-file" accept=".csv">
-                    <button onclick="bulkUpload()" id="upload-btn" style="background: var(--blue);">Sync Namelist</button>
-                    <div id="upload-status" style="margin-top:10px; font-weight: 900; color: var(--red); font-size: 0.7rem;"></div>
+                <div class="card">
+                    <h2>Launch Day Reset</h2>
+                    <button onclick="resetExpoForLaunch()" style="background:var(--black); border-color:var(--red);">WIPE TEST DATA</button>
                 </div>
+                <div class="card"><h2>Bulk Upload</h2><input type="file" id="csv-file" accept=".csv"><button onclick="bulkUpload()" id="upload-btn">Sync Namelist</button><div id="upload-status"></div></div>
             </div>
-
-            <!-- COLUMN 2: MANUAL EDITOR (NOW WITH YEAR FIELD) -->
-            <div class="card" style="box-shadow: 10px 10px 0px var(--red);">
+            <div class="card">
                 <h2 id="form-title">Add/Edit Artist</h2>
-                <input type="text" id="a-code" placeholder="Booth Code (e.g. B101)">
-                <input type="text" id="a-artist" placeholder="Student Name">
-                <input type="text" id="a-title" placeholder="Artwork Title">
-                
-                <!-- NEW YEAR FIELD -->
-                <input type="text" id="a-year" placeholder="Year Group (e.g. KG1, Y7, Y11)">
-                
-                <select id="a-cat">
-                    <option value="kindergarten">Kindergarten (General)</option>
-                    <option value="primary">Primary (General)</option>
-                    <option value="secondary">Secondary (General)</option>
-                </select>
-                
-                <button onclick="saveArt()" id="save-btn">Save to Database</button>
-                <button onclick="resetForm()" id="cancel-btn" class="hidden" style="background:none; color:var(--blue); border:none; text-decoration:underline; margin-top:10px; cursor:pointer;">Cancel Edit</button>
+                <input type="text" id="a-code" placeholder="Booth Code"><input type="text" id="a-artist" placeholder="Student Name"><input type="text" id="a-title" placeholder="Art Title"><input type="text" id="a-year" placeholder="Year Group (e.g. KG1, Y7, Y11)">
+                <select id="a-cat"><option value="kindergarten">KG</option><option value="primary">Primary</option><option value="secondary">Secondary</option></select>
+                <button onclick="saveArt()">Save to DB</button>
+                <button onclick="resetForm()" id="cancel-btn" class="hidden">Cancel Edit</button>
             </div>
         </div>
-
-        <!-- LIVE DATABASE -->
-        <div class="card" style="margin-top: 40px; box-shadow: 15px 15px 0px var(--black); width: 100%;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h2>Live Database</h2>
-                <button onclick="exportCSV()" style="width:auto; padding:10px 20px; font-size: 0.7rem; background: var(--yellow); color: black;">Export Results</button>
-            </div>
-            <input type="text" id="db-search" placeholder="Search by name, code, or year group..." style="margin-top: 20px; border-color: var(--blue);">
-            <div id="admin-results" style="margin-top: 10px; max-height: 500px; overflow-y: auto;"></div>
+        <div class="card" style="margin-top:40px; width:100%;">
+            <div style="display:flex; justify-content:space-between;"><h2>Live Database</h2><button onclick="exportCSV()" style="width:auto; padding:10px 20px; font-size:0.7rem; background:var(--yellow); color:black;">Export Final CSV</button></div>
+            <input type="text" id="db-search" placeholder="Quick Search...">
+            <div id="admin-results" style="max-height:500px; overflow-y:auto;"></div>
         </div>
     </div>
-
     <script src="firebase-config.js"></script>
-
     <script>
         let fullLocalData = [];
-
-        async function toggleSet(key, val) {
-            await db.collection('settings').doc('status').set({ [key]: val }, { merge: true });
-        }
-
-        db.collection('settings').doc('status').onSnapshot(doc => {
-            if (doc.exists) {
-                const d = doc.data();
-                document.getElementById('status-label').innerText = d.isOpen ? "OPEN" : "LOCKED";
-                document.getElementById('status-label').style.color = d.isOpen ? "#27ae60" : "var(--red)";
-                document.getElementById('geo-label').innerText = d.isGeofenceEnabled ? "ACTIVE" : "OFF";
-            }
-        });
-
-        // SAVE / UPDATE LOGIC
-        async function saveArt() {
-            const code = document.getElementById('a-code').value.toUpperCase().trim();
-            const artist = document.getElementById('a-artist').value.trim();
-            const title = document.getElementById('a-title').value.trim();
-            const year = document.getElementById('a-year').value.toUpperCase().trim(); // Year Group
-            const cat = document.getElementById('a-cat').value;
-
-            if(!code || !artist || !year) return alert("Code, Name, and Year Group are required!");
-
-            try {
-                await db.collection('artworks').doc(code).set({
-                    artist: artist,
-                    title: title || "Untitled",
-                    year: year,
-                    category: cat
-                }, { merge: true });
-                alert("Saved to Cloud!");
-                resetForm();
-            } catch (e) { alert(e.message); }
-        }
-
-        function resetForm() {
-            document.getElementById('a-code').value = "";
-            document.getElementById('a-code').disabled = false;
-            document.getElementById('a-artist').value = "";
-            document.getElementById('a-title').value = "";
-            document.getElementById('a-year').value = "";
-            document.getElementById('form-title').innerText = "Add/Edit Artist";
-            document.getElementById('cancel-btn').classList.add('hidden');
-        }
-
-        function prepareEdit(id) {
-            const student = fullLocalData.find(d => d.id === id);
-            if (!student) return;
-
-            document.getElementById('a-code').value = student.id;
-            document.getElementById('a-code').disabled = true;
-            document.getElementById('a-artist').value = student.artist;
-            document.getElementById('a-title').value = student.title || "";
-            document.getElementById('a-year').value = student.year || "";
-            document.getElementById('a-cat').value = student.category;
-
-            document.getElementById('form-title').innerText = "Editing: " + student.id;
-            document.getElementById('cancel-btn').classList.remove('hidden');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        async function deleteArt(id) {
-            if(confirm("Delete " + id + "?")) await db.collection('artworks').doc(id).delete();
-        }
-
-        async function bulkUpload() {
-            const file = document.getElementById('csv-file').files[0];
-            const status = document.getElementById('upload-status');
-            if(!file) return alert("Select CSV!");
-            
-            Papa.parse(file, {header: true, complete: async (res) => {
-                let count = 0;
-                for(let item of res.data) {
-                    if(item.Code) {
-                        await db.collection('artworks').doc(item.Code.trim().toUpperCase()).set({
-                            artist: item.Name || "Unknown",
-                            title: item.Title || "",
-                            category: (item.Category || "primary").toLowerCase(),
-                            year: (item.Year || "Y1").toUpperCase(), // ADDED YEAR
-                            voteCount: 0
-                        }, { merge: true });
-                        count++;
-                        status.innerText = `Syncing: ${count}`;
-                    }
-                }
-                alert("Bulk Sync Complete!");
-            }});
-        }
-
-        function renderList(filter = "") {
-            const out = document.getElementById('admin-results');
-            out.innerHTML = "";
-            fullLocalData.filter(d => 
-                d.id.toLowerCase().includes(filter) || 
-                d.artist.toLowerCase().includes(filter) ||
-                (d.year && d.year.toLowerCase().includes(filter))
-            ).forEach(d => {
-                const row = document.createElement('div');
-                row.className = "result-row";
-                row.innerHTML = `
-                    <div style="flex:1;"><b style="color:var(--red)">${d.id}</b> ${d.artist}<br>
-                    <small>${d.year || 'No Year'} | ${d.category.toUpperCase()}</small></div>
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <span style="background:var(--blue); color:white; padding:2px 8px;">${d.voteCount||0}</span>
-                        <button onclick="prepareEdit('${d.id}')" style="background:var(--yellow); color:black; font-size:0.6rem; padding:5px; width:auto; border:2px solid black;">EDIT</button>
-                        <button onclick="deleteArt('${d.id}')" style="background:var(--red); color:white; font-size:0.6rem; padding:5px; width:auto; border:2px solid black;">DEL</button>
-                    </div>`;
-                out.appendChild(row);
-            });
-        }
-
-        document.getElementById('db-search').oninput = (e) => renderList(e.target.value.toLowerCase());
-
-        db.collection('artworks').onSnapshot(snap => {
-            let total = 0;
-            fullLocalData = snap.docs.map(doc => {
-                const d = doc.data();
-                total += (d.voteCount || 0);
-                return { id: doc.id, ...d };
-            });
-            document.getElementById('total-votes').innerText = "TOTAL VOTES: " + total;
-            renderList(document.getElementById('db-search').value.toLowerCase());
-        });
-
-        function exportCSV() {
-            let csv = "Code,Name,Title,Category,Year,Votes\n";
-            fullLocalData.forEach(d => { csv += `${d.id},"${d.artist}","${d.title}",${d.category},${d.year},${d.voteCount||0}\n`; });
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'expo_final_results.csv'; a.click();
-        }
+        async function toggleSet(k,v){ await db.collection('settings').doc('status').set({[k]:v},{merge:true}); }
+        db.collection('settings').doc('status').onSnapshot(d => { if(d.exists){ document.getElementById('status-label').innerText = d.data().isOpen?'OPEN':'LOCKED'; document.getElementById('geo-label').innerText = d.data().isGeofenceEnabled?'ACTIVE':'OFF'; }});
+        async function saveArt(){ const code = document.getElementById('a-code').value.toUpperCase(); const artist = document.getElementById('a-artist').value; const year = document.getElementById('a-year').value.toUpperCase(); await db.collection('artworks').doc(code).set({artist, title:document.getElementById('a-title').value, year, category:document.getElementById('a-cat').value},{merge:true}); alert("Saved!"); resetForm(); }
+        async function bulkUpload(){ const file = document.getElementById('csv-file').files[0]; Papa.parse(file,{header:true, complete:async(res)=>{ for(let item of res.data){ if(item.Code) await db.collection('artworks').doc(item.Code.toUpperCase().trim()).set({artist:item.Name, title:item.Title||"", category:item.Category.toLowerCase(), year:item.Year.toUpperCase(), voteCount:0},{merge:true}); } alert("Done!"); }}); }
+        async function resetExpoForLaunch(){ if(!confirm("WIPE ALL VOTES?")) return; const batch = db.batch(); fullLocalData.forEach(s => batch.update(db.collection('artworks').doc(s.id), {voteCount:0})); (await db.collection('voters').get()).forEach(v => batch.delete(v.ref)); await batch.commit(); alert("Clean Launch Ready!"); }
+        function prepareEdit(id){ const s = fullLocalData.find(x=>x.id===id); document.getElementById('a-code').value=s.id; document.getElementById('a-code').disabled=true; document.getElementById('a-artist').value=s.artist; document.getElementById('a-title').value=s.title; document.getElementById('a-year').value=s.year; document.getElementById('a-cat').value=s.category; document.getElementById('cancel-btn').classList.remove('hidden'); window.scrollTo(0,0); }
+        db.collection('artworks').onSnapshot(snap => { fullLocalData = snap.docs.map(doc => ({id:doc.id, ...doc.data()})); renderList(document.getElementById('db-search').value.toLowerCase()); });
+        function renderList(f){ const out = document.getElementById('admin-results'); out.innerHTML = ""; fullLocalData.filter(d => d.id.toLowerCase().includes(f) || d.artist.toLowerCase().includes(f)).forEach(d => { out.innerHTML += `<div class="result-row"><div style="flex:1;"><b>${d.id}</b> ${d.artist}<br><small>${d.year} | ${d.category.toUpperCase()}</small></div><div>${d.voteCount||0} <button onclick="prepareEdit('${d.id}')" style="width:auto; padding:5px; font-size:0.6rem;">EDIT</button></div></div>`; }); }
+        function exportCSV(){ let csv = "Code,Name,Title,Category,Year,Votes\n"; fullLocalData.forEach(d => { csv += `${d.id},"${d.artist}","${d.title}",${d.category},${d.year},${d.voteCount||0}\n`; }); const blob = new Blob([csv],{type:'text/csv'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'expo_results.csv'; a.click(); }
+        function resetForm(){ document.getElementById('a-code').value=""; document.getElementById('a-code').disabled=false; document.getElementById('cancel-btn').classList.add('hidden'); }
     </script>
-
-    <style>
-        @media (max-width: 600px) { .admin-grid { grid-template-columns: 1fr !important; } }
-        .result-row small { opacity: 0.6; text-transform: none; font-weight: 400; }
-    </style>
 </body>
 </html>
