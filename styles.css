@@ -52,4 +52,4 @@ button:hover { background: var(--blue); transform: translate(-3px, -3px); box-sh
 .voted-btn { background: #ccc !important; color: #888 !important; pointer-events: none !important; box-shadow: none !important; }
 .hidden { display: none; }
 
-@media (max-width: 500px) { h1 { font-size: 2.2rem; } .school-logo { width: 100px; height: 100px; } .card { padding: 25px; } }s
+@media (max-width: 500px) { h1 { font-size: 2.2rem; } .school-logo { width: 100px; height: 100px; } .card { padding: 25px; } }
