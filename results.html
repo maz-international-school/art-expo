@@ -1,80 +1,103 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8"><title>MAZ ART EXPO 2026</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MAZ ART EXPO 2026</title>
     <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Montserrat:wght@900&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
 <body style="background:var(--white); padding:0; overflow:hidden; cursor:none;">
+
+    <!-- Password Protection -->
+    <script>
+        const pass = prompt("ENTER ACCESS KEY:");
+        if (pass !== "maz2026") window.location.href = "index.html"; 
+    </script>
+
     <img src="image1.png" class="school-logo" alt="Logo">
 
-    <div style="height:100vh; display:flex; flex-direction:column;">
+    <div style="height: 100vh; display: flex; flex-direction: column; position: relative; z-index: 2;">
+        
         <!-- HEADER -->
-        <div style="background:var(--black); color:white; padding:15px 40px; display:flex; justify-content:space-between; align-items:center; border-bottom:8px solid var(--red);">
-            <h1 style="color:white; font-size:2.5rem; margin:0;">EXPO 2026 LEADERBOARD</h1>
-            <div id="ticker" style="background:var(--yellow); color:black; padding:5px 20px; font-family:'Archivo Black'; font-size:1.5rem;">TOTAL VOTES: 0</div>
+        <div style="background: var(--black); color: white; padding: 20px 50px; display: flex; justify-content: space-between; align-items: center; border-bottom: 10px solid var(--red);">
+            <div style="font-family: 'Archivo Black'; font-size: 3.5rem; letter-spacing: -2px;">ART EXPO 2026</div>
+            <div style="text-align: right;">
+                <div style="font-family: 'Archivo Black'; font-size: 2.5rem; background: var(--yellow); color: var(--black); padding: 5px 25px; border: 4px solid white;">TOTAL: <span id="ticker-total">0</span></div>
+            </div>
         </div>
 
-        <!-- 13 CHAMPION GRID -->
-        <div id="champion-grid" style="flex:1; display:grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(3, 1fr); gap:10px; padding:15px; background:var(--black);">
-            <!-- Year Groups will be injected here -->
+        <!-- MASONRY GALLERY WALL -->
+        <div id="champion-wall" style="flex: 1; display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(3, 1fr); gap: 20px; padding: 30px; background: transparent;">
+            <!-- Year Groups Injected Here -->
+        </div>
+
+        <!-- LIVE ACTIVITY TICKER (Mega App Flex) -->
+        <div style="background: var(--blue); color: white; height: 60px; overflow: hidden; display: flex; align-items: center; border-top: 8px solid var(--black);">
+            <div class="scrolling-text" id="live-feed">
+                CONNECTED TO MAZ CLOUD DATABASE... WAITING FOR LIVE VOTE STREAM... 
+            </div>
         </div>
     </div>
 
     <script src="firebase-config.js"></script>
     <script>
-        const yearGroups = [
-            {id: 'KG1', cat: 'kindergarten', label: 'KG 1'},
-            {id: 'KG2', cat: 'kindergarten', label: 'KG 2'},
-            {id: 'Y1', cat: 'primary', label: 'Year 1'},
-            {id: 'Y2', cat: 'primary', label: 'Year 2'},
-            {id: 'Y3', cat: 'primary', label: 'Year 3'},
-            {id: 'Y4', cat: 'primary', label: 'Year 4'},
-            {id: 'Y5', cat: 'primary', label: 'Year 5'},
-            {id: 'Y6', cat: 'primary', label: 'Year 6'},
-            {id: 'Y7', cat: 'secondary', label: 'Year 7'},
-            {id: 'Y8', cat: 'secondary', label: 'Year 8'},
-            {id: 'Y9', cat: 'secondary', label: 'Year 9'},
-            {id: 'Y10', cat: 'secondary', label: 'Year 10'},
-            {id: 'Y11', cat: 'secondary', label: 'Year 11'}
+        const groups = [
+            {id:'KG1', c:'kindergarten', l:'KG 1'}, {id:'KG2', c:'kindergarten', l:'KG 2'},
+            {id:'Y1', c:'primary', l:'YEAR 1'}, {id:'Y2', c:'primary', l:'YEAR 2'}, {id:'Y3', c:'primary', l:'YEAR 3'},
+            {id:'Y4', c:'primary', l:'YEAR 4'}, {id:'Y5', c:'primary', l:'YEAR 5'}, {id:'Y6', c:'primary', l:'YEAR 6'},
+            {id:'Y7', c:'secondary', l:'YEAR 7'}, {id:'Y8', c:'secondary', l:'YEAR 8'}, {id:'Y9', c:'secondary', l:'YEAR 9'},
+            {id:'Y10', c:'secondary', l:'YEAR 10'}, {id:'Y11', c:'secondary', l:'YEAR 11'}
         ];
 
-        db.collection('artworks').onSnapshot(snap => {
-            const data = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
-            const grid = document.getElementById('champion-grid');
-            grid.innerHTML = "";
-            let total = 0;
+        let lastVoteCount = 0;
 
-            yearGroups.forEach(group => {
-                const students = data.filter(a => a.year === group.id).sort((a,b) => b.voteCount - a.voteCount);
-                const winner = students.length > 0 && students[0].voteCount > 0 ? students[0] : null;
+        db.collection('artworks').onSnapshot(snap => {
+            const data = snap.docs.map(doc => ({id:doc.id, ...doc.data()}));
+            const wall = document.getElementById('champion-wall');
+            wall.innerHTML = "";
+            let currentTotal = 0;
+
+            groups.forEach((g, index) => {
+                const s = data.filter(a => a.year === g.id).sort((a,b) => b.voteCount - a.voteCount);
+                const w = s.length > 0 && s[0].voteCount > 0 ? s[0] : null;
                 
-                // Add to total
-                students.forEach(s => total += (s.voteCount || 0));
+                s.forEach(x => currentTotal += (x.voteCount || 0));
 
                 const card = document.createElement('div');
-                card.className = "card";
-                card.style.margin = "0";
-                card.style.padding = "15px";
-                card.style.display = "flex";
-                card.style.flexDirection = "column";
-                card.style.justifyContent = "space-between";
-                card.style.borderWidth = "4px";
-                card.style.boxShadow = "5px 5px 0px " + getCol(group.cat);
-
+                card.className = "gallery-card";
+                
+                // Asymmetric Bauhaus Tiling
+                if (index % 4 === 0) card.style.gridColumn = "span 1";
+                
                 card.innerHTML = `
-                    <div style="font-family:'Archivo Black'; font-size:0.8rem; background:${getCol(group.cat)}; color:${group.cat==='secondary'?'black':'white'}; padding:2px 5px; display:inline-block; width:fit-content;">${group.label}</div>
-                    <div style="margin:10px 0;">
-                        <div style="font-weight:900; font-size:1.1rem; line-height:1.1; text-transform:uppercase;">${winner ? winner.artist : '---'}</div>
-                        <div style="font-size:0.6rem; opacity:0.6;">${winner ? winner.title : 'No votes yet'}</div>
+                    <div class="card-label" style="background:${getCol(g.c)}">${g.l}</div>
+                    <div class="card-content">
+                        <div class="winner-name">${w ? w.artist : '<span style="opacity:0.2">---</span>'}</div>
+                        <div class="winner-title">${w ? w.title : 'WAITING FOR VOTES'}</div>
                     </div>
-                    <div style="font-family:'Archivo Black'; font-size:1.5rem; text-align:right; color:${getCol(group.cat)}">${winner ? winner.voteCount : 0}</div>
+                    <div class="card-footer">
+                        <div class="vote-badge">${w ? w.voteCount : 0}</div>
+                        <div class="booth-tag">${w ? w.id : ''}</div>
+                    </div>
                 `;
-                grid.appendChild(card);
+                wall.appendChild(card);
             });
-            document.getElementById('ticker').innerText = "TOTAL VOTES: " + total;
+
+            // If vote count increased, show it in the ticker
+            if (currentTotal > lastVoteCount && lastVoteCount !== 0) {
+                updateTicker("NEW VOTE REGISTERED IN THE SYSTEM!");
+            }
+            lastVoteCount = currentTotal;
+            document.getElementById('ticker-total').innerText = currentTotal;
         });
+
+        function updateTicker(msg) {
+            const feed = document.getElementById('live-feed');
+            feed.innerText = `*** ${msg} *** ${feed.innerText}`;
+        }
 
         function getCol(cat) {
             if(cat === 'kindergarten') return 'var(--red)';
@@ -82,5 +105,95 @@
             return 'var(--yellow)';
         }
     </script>
+
+    <style>
+        .gallery-card {
+            background: white;
+            border: 6px solid var(--black);
+            box-shadow: 12px 12px 0px var(--black);
+            display: flex;
+            flex-direction: column;
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+        }
+
+        .card-label {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 1rem;
+            color: white;
+            padding: 5px 15px;
+            border-bottom: 6px solid var(--black);
+        }
+
+        /* Secondary Year colors have black text for contrast */
+        .gallery-card:nth-child(n+9) .card-label { color: var(--black); }
+
+        .card-content {
+            padding: 15px;
+            flex: 1;
+        }
+
+        .winner-name {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 900;
+            font-size: 1.4rem;
+            line-height: 1;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .winner-title {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            opacity: 0.5;
+            letter-spacing: 1px;
+        }
+
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding: 10px 15px;
+            background: #f0f0f0;
+            border-top: 4px solid var(--black);
+        }
+
+        .vote-badge {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 2.5rem;
+            line-height: 1;
+        }
+
+        .booth-tag {
+            font-weight: 900;
+            font-size: 0.8rem;
+            background: var(--black);
+            color: white;
+            padding: 2px 8px;
+        }
+
+        /* TICKER ANIMATION */
+        .scrolling-text {
+            white-space: nowrap;
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 1.5rem;
+            animation: scroll-left 30s linear infinite;
+        }
+
+        @keyframes scroll-left {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+
+        /* Card Entrance Animation */
+        .gallery-card {
+            animation: popIn 0.5s ease-out backwards;
+        }
+        @keyframes popIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+    </style>
 </body>
 </html>
