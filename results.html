@@ -11,25 +11,27 @@
 </head>
 <body style="background:var(--white); padding:0; overflow:hidden; cursor:none;">
 
-    <!-- THE 3x3 COLOR LOGO -->
-    <img src="image1.png" class="school-logo" alt="Logo">
+    <!-- THE 3x3 COLOR LOGO ANCHOR -->
+    <img src="image1.png" class="school-logo" style="z-index: 100;" alt="Logo">
 
     <div style="height: 100vh; display: flex; flex-direction: column; position: relative; z-index: 2;">
         
-        <!-- TOP BROADCAST BAR -->
-        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--black); color: white; padding: 20px 50px; border-bottom: 10px solid var(--red);">
-            <div style="font-family: 'Archivo Black'; font-size: 3.5rem; letter-spacing: -2px;">MAZ ART EXPO 2026</div>
-            <div id="total-votes-ticker" style="font-family: 'Archivo Black'; font-size: 2.2rem; background: var(--yellow); color: var(--black); padding: 5px 25px; border: 4px solid white;">TOTAL: 0</div>
+        <!-- HEADER -->
+        <div style="background: var(--black); color: white; padding: 20px 50px; display: flex; justify-content: space-between; align-items: center; border-bottom: 10px solid var(--red);">
+            <div style="font-family: 'Archivo Black'; font-size: 3.5rem; letter-spacing: -2px;">ART EXPO 2026</div>
+            <div style="font-family: 'Archivo Black'; font-size: 2.2rem; background: var(--yellow); color: var(--black); padding: 5px 25px; border: 4px solid white;">
+                TOTAL VOTES: <span id="master-total-ticker">0</span>
+            </div>
         </div>
 
         <!-- 13-PRIZE GRID -->
         <div id="champion-wall" style="flex: 1; display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(3, 1fr); gap: 15px; padding: 25px; background: transparent;">
-            <!-- Content Injected via JS -->
+            <!-- Year Groups injected here -->
         </div>
 
-        <!-- REFINED FOOTER TICKER -->
+        <!-- FOOTER TICKER -->
         <div style="background: var(--blue); color: white; height: 50px; overflow: hidden; display: flex; align-items: center; border-top: 6px solid var(--black);">
-            <div class="scrolling-text" style="font-family: 'Archivo Black'; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 2px;">
+            <div class="scrolling-text" style="font-family: 'Archivo Black'; font-size: 1.2rem; text-transform: uppercase;">
                 LIVE EXHIBITION STANDINGS • JALAN KRISTAL SHAH ALAM • CAST YOUR VOTE VIA THE OFFICIAL EXPO LINK • ONLY ON-SITE VOTES VERIFIED BY GEOFENCE
             </div>
         </div>
@@ -52,50 +54,46 @@
             let globalTotal = 0;
 
             groups.forEach((g) => {
-                // 1. Get all students for this year
                 const yearStudents = data.filter(a => a.year === g.id);
-                
-                // 2. Sort by votes to find the highest count
-                const sorted = [...yearStudents].sort((a,b) => (b.voteCount || 0) - (a.voteCount || 0));
+                const sorted = yearStudents.sort((a,b) => (b.voteCount || 0) - (a.voteCount || 0));
                 const topScore = sorted.length > 0 ? (sorted[0].voteCount || 0) : 0;
                 
-                // Add all votes in this year to global total
+                // Track global total
                 yearStudents.forEach(s => globalTotal += (s.voteCount || 0));
 
-                // 3. Find EVERYONE who has that top score (if score > 0)
+                // TIE LOGIC: Find everyone sharing the top score
                 const leaders = sorted.filter(s => s.voteCount === topScore && topScore > 0);
 
                 const card = document.createElement('div');
                 card.className = "gallery-card";
-                card.style.borderLeft = `8px solid ${getCol(g.c)}`;
-
+                card.style.borderLeft = `10px solid ${getCol(g.c)}`;
+                
                 let nameDisplay = "";
                 let titleDisplay = "";
-                let headerExtra = "";
+                let headerStatus = "";
 
                 if (topScore === 0) {
-                    nameDisplay = '<span style="opacity:0.15">---</span>';
-                    titleDisplay = "Awaiting First Vote";
+                    nameDisplay = '<span style="opacity:0.1">---</span>';
+                    titleDisplay = "No votes yet";
                 } else if (leaders.length === 1) {
-                    // Single Winner
                     nameDisplay = leaders[0].artist;
                     titleDisplay = leaders[0].title || "Untitled";
-                } else if (leaders.length > 1 && leaders.length <= 3) {
-                    // Small Tie (Show all names)
-                    nameDisplay = leaders.map(l => l.artist).join(" & ");
-                    titleDisplay = "JOINT LEADERS";
-                    headerExtra = `<span style="background:var(--red); color:white; padding:2px 5px; font-size:0.6rem; margin-left:10px;">TIE</span>`;
+                } else if (leaders.length <= 3) {
+                    // Small tie - show names
+                    nameDisplay = "JOINT LEADERS";
+                    titleDisplay = leaders.map(l => l.artist).join(", ");
+                    headerStatus = `<span style="background:var(--red); color:white; padding:2px 5px; font-size:0.6rem; margin-left:10px;">TIE</span>`;
                 } else {
-                    // Mass Tie
+                    // Mass tie - hide names for fairness
                     nameDisplay = "MULTIPLE LEADERS";
-                    titleDisplay = `${leaders.length} Artists Drawing`;
-                    headerExtra = `<span style="background:var(--red); color:white; padding:2px 5px; font-size:0.6rem; margin-left:10px;">MASS TIE</span>`;
+                    titleDisplay = `${leaders.length} Students Drawing`;
+                    headerStatus = `<span style="background:var(--red); color:white; padding:2px 5px; font-size:0.6rem; margin-left:10px;">MASS TIE</span>`;
                 }
 
                 card.innerHTML = `
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <div class="card-label" style="color:${getCol(g.c)}">${g.l}</div>
-                        ${headerExtra}
+                        ${headerStatus}
                     </div>
                     <div class="card-content">
                         <div class="winner-name" style="font-size: ${leaders.length > 1 ? '0.9rem' : '1.1rem'}">${nameDisplay}</div>
@@ -108,7 +106,8 @@
                 `;
                 wall.appendChild(card);
             });
-            document.getElementById('ticker-total').innerText = globalTotal;
+            // Update the Top Ticker correctly
+            document.getElementById('master-total-ticker').innerText = globalTotal;
         });
 
         function getCol(cat) {
@@ -121,8 +120,7 @@
     <style>
         .gallery-card { 
             background: white; border: 4px solid var(--black); box-shadow: 8px 8px 0px var(--black); 
-            display: flex; flex-direction: column; padding: 12px; height: 100%; box-sizing: border-box;
-            transition: all 0.3s ease;
+            display: flex; flex-direction: column; padding: 12px; height: 100%; box-sizing: border-box; 
         }
         .card-label { font-family: 'Archivo Black'; font-size: 0.8rem; }
         .winner-name { font-weight: 900; line-height: 1.1; text-transform: uppercase; margin-top: 5px; }
