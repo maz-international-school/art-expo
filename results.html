@@ -1,34 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rankings | Art Expo 2026</title>
+    <meta charset="UTF-8"><title>MAZ ART EXPO | LIVE RANKINGS</title>
     <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Montserrat:wght@900&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
-<body style="display: block; padding: 0; overflow-y: auto; cursor: default;">
-
+<body style="background:var(--white); padding:0; overflow:hidden; cursor:none;">
     <img src="image1.png" class="school-logo" alt="Logo">
-
-    <div style="min-height: 100vh; display: flex; flex-direction: column; position: relative; z-index: 2;">
+    <div style="height: 100vh; display: flex; flex-direction: column; position: relative; z-index: 2;">
         
         <!-- HEADER -->
-        <div style="background: var(--black); color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 10px solid var(--red); flex-wrap: wrap; gap: 10px;">
-            <div style="font-family: 'Archivo Black'; font-size: clamp(1.5rem, 5vw, 3.5rem); letter-spacing: -1px;">ART EXPO 2026</div>
-            <div id="total-votes-ticker" style="font-family: 'Archivo Black'; font-size: 1.5rem; background: var(--yellow); color: var(--black); padding: 5px 20px; border: 4px solid white;">TOTAL: 0</div>
+        <div style="background: var(--black); color: white; padding: 20px 50px; display: flex; justify-content: space-between; align-items: center; border-bottom: 10px solid var(--red);">
+            <div style="font-family: 'Archivo Black'; font-size: 3.5rem;">MAZ ART EXPO 2026</div>
+            <div id="total-votes-ticker" style="font-family: 'Archivo Black'; font-size: 2.2rem; background: var(--yellow); color: var(--black); padding: 5px 25px; border: 4px solid white;">TOTAL: 0</div>
         </div>
 
-        <!-- 13-PRIZE RESPONSIVE GRID -->
-        <div id="champion-wall" style="flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; padding: 20px; background: transparent;">
-            <!-- Categories injected here -->
-        </div>
+        <!-- 13-PRIZE GRID -->
+        <div id="champion-wall" style="flex: 1; display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(3, 1fr); gap: 15px; padding: 20px; background: transparent;"></div>
 
-        <!-- FOOTER -->
-        <div style="background: var(--blue); color: white; height: 50px; overflow: hidden; display: flex; align-items: center; border-top: 6px solid var(--black); margin-top: auto;">
-            <div class="scrolling-text" style="font-family: 'Archivo Black'; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 2px;">
-                LIVE EXHIBITION STANDINGS • JALAN KRISTAL SHAH ALAM • CAST YOUR VOTE VIA THE OFFICIAL EXPO LINK
+        <!-- FOOTER TICKER -->
+        <div style="background: var(--blue); color: white; height: 50px; overflow: hidden; display: flex; align-items: center; border-top: 6px solid var(--black);">
+            <div class="scrolling-text" style="font-family: 'Archivo Black'; font-size: 1.2rem; text-transform: uppercase;">
+                LIVE EXHIBITION STANDINGS • JALAN KRISTAL SHAH ALAM • CAST YOUR VOTE VIA THE OFFICIAL EXPO LINK • 
             </div>
         </div>
     </div>
@@ -59,24 +54,24 @@
                 card.style.borderLeft = `8px solid ${getCol(g.c)}`;
                 
                 card.innerHTML = `
-                    <div class="card-label" style="color:${getCol(g.c)}">${g.l}</div>
-                    <div class="card-content">
-                        <div class="winner-name">${w ? w.artist : '<span style="opacity:0.15">---</span>'}</div>
-                        <div class="winner-title">${w ? (w.title || 'Untitled') : 'Awaiting Selection'}</div>
+                    <div style="font-family:'Archivo Black'; font-size:0.8rem; color:${getCol(g.c)}">${g.l}</div>
+                    <div style="margin:5px 0;">
+                        <div style="font-weight:900; font-size:1.1rem; line-height:1; text-transform:uppercase;">${w ? w.artist : '<span style="opacity:0.15">---</span>'}</div>
+                        <div style="font-size:0.6rem; opacity:0.5; font-weight:700;">${w ? w.title : 'Awaiting Selection'}</div>
                     </div>
-                    <div class="card-footer">
-                        <div class="vote-badge">${w ? w.voteCount : 0}</div>
-                        <div class="booth-tag" style="background:${getCol(g.c)}; color:${g.c==='secondary'?'black':'white'}">${w ? w.id : g.id}</div>
+                    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:auto;">
+                        <div style="font-family: 'Archivo Black'; font-size: 1.8rem;">${w ? w.voteCount : 0}</div>
+                        <div style="font-size: 0.6rem; background: var(--black); color: white; padding: 2px 5px; font-weight: 900;">${w ? w.id : g.id}</div>
                     </div>
                 `;
                 wall.appendChild(card);
             });
-            document.getElementById('total-votes-ticker').innerText = "TOTAL: " + currentTotal;
+            document.getElementById('ticker-total').innerText = currentTotal;
         });
 
-        function getCol(cat) {
-            if(cat === 'kindergarten') return 'var(--red)';
-            if(cat === 'primary') return 'var(--blue)';
+        function getCol(c) {
+            if(c === 'kindergarten') return 'var(--red)';
+            if(c === 'primary') return 'var(--blue)';
             return 'var(--yellow)';
         }
     </script>
