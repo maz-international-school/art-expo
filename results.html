@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MAZ ART EXPO 2026</title>
+    <title>MAZ ART EXPO 2026 | LIVE RANKINGS</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Montserrat:wght@900&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -15,23 +15,21 @@
 
     <div style="height: 100vh; display: flex; flex-direction: column; position: relative; z-index: 2;">
         
-        <!-- HEADER -->
-        <div style="background: var(--black); color: white; padding: 20px 50px; display: flex; justify-content: space-between; align-items: center; border-bottom: 10px solid var(--red);">
+        <!-- TOP BROADCAST BAR -->
+        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--black); color: white; padding: 20px 50px; border-bottom: 10px solid var(--red);">
             <div style="font-family: 'Archivo Black'; font-size: 3.5rem; letter-spacing: -2px;">ART EXPO 2026</div>
-            <div style="text-align: right;">
-                <div style="font-family: 'Archivo Black'; font-size: 2.5rem; background: var(--yellow); color: var(--black); padding: 5px 25px; border: 4px solid white;">TOTAL: <span id="ticker-total">0</span></div>
-            </div>
+            <div id="total-votes-ticker" style="font-family: 'Archivo Black'; font-size: 2.2rem; background: var(--yellow); color: var(--black); padding: 5px 25px; border: 4px solid white;">TOTAL: 0</div>
         </div>
 
-        <!-- MASONRY GALLERY WALL -->
-        <div id="champion-wall" style="flex: 1; display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(3, 1fr); gap: 20px; padding: 30px; background: transparent;">
-            <!-- Year Groups Injected Here -->
+        <!-- 13-PRIZE GRID -->
+        <div id="champion-wall" style="flex: 1; display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(3, 1fr); gap: 15px; padding: 25px; background: transparent;">
+            <!-- Year Groups injected here -->
         </div>
 
-        <!-- LIVE ACTIVITY TICKER (Mega App Flex) -->
-        <div style="background: var(--blue); color: white; height: 60px; overflow: hidden; display: flex; align-items: center; border-top: 8px solid var(--black);">
-            <div class="scrolling-text" id="live-feed">
-                CONNECTED TO MAZ CLOUD DATABASE... WAITING FOR LIVE VOTE STREAM... 
+        <!-- REFINED FOOTER TICKER -->
+        <div style="background: var(--blue); color: white; height: 50px; overflow: hidden; display: flex; align-items: center; border-top: 6px solid var(--black);">
+            <div class="scrolling-text" style="font-family: 'Archivo Black'; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 2px;">
+                LIVE EXHIBITION STANDINGS • JALAN KRISTAL SHAH ALAM • CAST YOUR VOTE VIA THE OFFICIAL EXPO LINK • SUPPORTING YOUNG ARTISTS
             </div>
         </div>
     </div>
@@ -46,31 +44,26 @@
             {id:'Y10', c:'secondary', l:'YEAR 10'}, {id:'Y11', c:'secondary', l:'YEAR 11'}
         ];
 
-        let lastVoteCount = 0;
-
         db.collection('artworks').onSnapshot(snap => {
             const data = snap.docs.map(doc => ({id:doc.id, ...doc.data()}));
             const wall = document.getElementById('champion-wall');
             wall.innerHTML = "";
             let currentTotal = 0;
 
-            groups.forEach((g, index) => {
+            groups.forEach((g) => {
                 const s = data.filter(a => a.year === g.id).sort((a,b) => b.voteCount - a.voteCount);
                 const w = s.length > 0 && s[0].voteCount > 0 ? s[0] : null;
-                
                 s.forEach(x => currentTotal += (x.voteCount || 0));
 
                 const card = document.createElement('div');
                 card.className = "gallery-card";
-                
-                // Asymmetric Bauhaus Tiling
-                if (index % 4 === 0) card.style.gridColumn = "span 1";
+                card.style.borderLeft = `8px solid ${getCol(g.c)}`;
                 
                 card.innerHTML = `
-                    <div class="card-label" style="background:${getCol(g.c)}">${g.l}</div>
+                    <div class="card-label" style="color:${getCol(g.c)}">${g.l}</div>
                     <div class="card-content">
-                        <div class="winner-name">${w ? w.artist : '<span style="opacity:0.2">---</span>'}</div>
-                        <div class="winner-title">${w ? w.title : 'WAITING FOR VOTES'}</div>
+                        <div class="winner-name">${w ? w.artist : '<span style="opacity:0.15">---</span>'}</div>
+                        <div class="winner-title">${w ? w.title : 'Awaiting Selection'}</div>
                     </div>
                     <div class="card-footer">
                         <div class="vote-badge">${w ? w.voteCount : 0}</div>
@@ -79,19 +72,8 @@
                 `;
                 wall.appendChild(card);
             });
-
-            // If vote count increased, show it in the ticker
-            if (currentTotal > lastVoteCount && lastVoteCount !== 0) {
-                updateTicker("NEW VOTE REGISTERED IN THE SYSTEM!");
-            }
-            lastVoteCount = currentTotal;
             document.getElementById('ticker-total').innerText = currentTotal;
         });
-
-        function updateTicker(msg) {
-            const feed = document.getElementById('live-feed');
-            feed.innerText = `*** ${msg} *** ${feed.innerText}`;
-        }
 
         function getCol(cat) {
             if(cat === 'kindergarten') return 'var(--red)';
@@ -101,93 +83,16 @@
     </script>
 
     <style>
-        .gallery-card {
-            background: white;
-            border: 6px solid var(--black);
-            box-shadow: 12px 12px 0px var(--black);
-            display: flex;
-            flex-direction: column;
-            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            position: relative;
-        }
-
-        .card-label {
-            font-family: 'Archivo Black', sans-serif;
-            font-size: 1rem;
-            color: white;
-            padding: 5px 15px;
-            border-bottom: 6px solid var(--black);
-        }
-
-        /* Secondary Year colors have black text for contrast */
-        .gallery-card:nth-child(n+9) .card-label { color: var(--black); }
-
-        .card-content {
-            padding: 15px;
-            flex: 1;
-        }
-
-        .winner-name {
-            font-family: 'Montserrat', sans-serif;
-            font-weight: 900;
-            font-size: 1.4rem;
-            line-height: 1;
-            text-transform: uppercase;
-            margin-bottom: 5px;
-        }
-
-        .winner-title {
-            font-size: 0.7rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            opacity: 0.5;
-            letter-spacing: 1px;
-        }
-
-        .card-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            padding: 10px 15px;
-            background: #f0f0f0;
-            border-top: 4px solid var(--black);
-        }
-
-        .vote-badge {
-            font-family: 'Archivo Black', sans-serif;
-            font-size: 2.5rem;
-            line-height: 1;
-        }
-
-        .booth-tag {
-            font-weight: 900;
-            font-size: 0.8rem;
-            background: var(--black);
-            color: white;
-            padding: 2px 8px;
-        }
-
-        /* TICKER ANIMATION */
-        .scrolling-text {
-            white-space: nowrap;
-            font-family: 'Archivo Black', sans-serif;
-            font-size: 1.5rem;
-            animation: scroll-left 30s linear infinite;
-        }
-
-        @keyframes scroll-left {
-            0% { transform: translateX(100%); }
-            100% { transform: translateX(-100%); }
-        }
-
-        /* Card Entrance Animation */
-        .gallery-card {
-            animation: popIn 0.5s ease-out backwards;
-        }
-        @keyframes popIn {
-            from { transform: scale(0.8); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
-        }
+        .gallery-card { background: white; border: 4px solid var(--black); box-shadow: 8px 8px 0px var(--black); display: flex; flex-direction: column; padding: 12px; }
+        .card-label { font-family: 'Archivo Black'; font-size: 0.8rem; margin-bottom: 5px; }
+        .winner-name { font-weight: 900; font-size: 1.1rem; line-height: 1; text-transform: uppercase; }
+        .winner-title { font-size: 0.6rem; opacity: 0.5; font-weight: 700; margin-top: 3px; }
+        .card-footer { display: flex; justify-content: space-between; align-items: flex-end; margin-top: auto; }
+        .vote-badge { font-family: 'Archivo Black'; font-size: 1.8rem; }
+        .booth-tag { font-size: 0.6rem; background: var(--black); color: white; padding: 2px 5px; font-weight: 900; }
+        
+        .scrolling-text { white-space: nowrap; animation: scroll-left 40s linear infinite; padding-left: 100%; }
+        @keyframes scroll-left { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
     </style>
 </body>
 </html>
