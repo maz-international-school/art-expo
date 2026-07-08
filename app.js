@@ -1,13 +1,14 @@
+// ==========================================
+// MAZ ART EXPO 2026 - MASTER ENGINE (FIXED)
+// ==========================================
+
 let currentVoter = "";
 let currentArt = null;
 let allArtworks = []; 
 let currentCategory = ""; 
 let currentYear = "";     
 
-const CAMPUSES = [
-    { name: "Shah Alam", lat: 3.0681, lon: 101.4895 },
-    { name: "Petaling Jaya", lat: 3.1095, lon: 101.6265 }
-];
+const CAMPUSES = [{ lat: 3.0681, lon: 101.4895 }, { lat: 3.1095, lon: 101.6265 }];
 const RADIUS_KM = 5.0; 
 
 const YEAR_MAP = {
@@ -20,47 +21,40 @@ async function loadArtData() {
     try {
         const snap = await db.collection('artworks').get();
         allArtworks = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        const searchInput = document.getElementById('search-input');
-        if (searchInput) searchInput.placeholder = `Search ${allArtworks.length} artists...`;
+        const si = document.getElementById('search-input');
+        if(si) si.placeholder = `Search ${allArtworks.length} artists...`;
     } catch (e) { setTimeout(loadArtData, 2000); }
 }
 loadArtData();
 
 window.startVoting = async function() {
-    const idInput = document.getElementById('voter-id');
-    const id = idInput.value.trim().toLowerCase();
-    const btn = document.querySelector('#step-id button');
+    const id = document.getElementById('voter-id').value.trim().toLowerCase();
     if (id.length < 5) return alert("Enter email or phone!");
-    btn.innerText = "AUTHENTICATING..."; btn.disabled = true;
+    const btn = document.querySelector('#step-id button');
+    btn.innerText = "CHECKING..."; btn.disabled = true;
 
     try {
         const statusDoc = await db.collection('settings').doc('status').get();
         const settings = statusDoc.exists ? statusDoc.data() : { isOpen: true, isGeofenceEnabled: true };
-
         if (!settings.isOpen) { alert("VOTING CLOSED."); resetBtn(btn); return; }
 
         if (settings.isGeofenceEnabled) {
-            btn.innerText = "VERIFYING RADIUS...";
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
-                    let isVerified = false;
-                    let nearestDist = 999;
-                    CAMPUSES.forEach(c => {
-                        const dist = calculateDistance(c.lat, c.lon, pos.coords.latitude, pos.coords.longitude);
-                        if (dist < nearestDist) nearestDist = dist;
-                        if (dist <= RADIUS_KM) isVerified = true;
-                    });
-                    if (!isVerified) { alert(`Access Denied: You are ${nearestDist.toFixed(1)}km away.`); resetBtn(btn); } 
+                    let verified = false;
+                    CAMPUSES.forEach(c => { if(calculateDistance(c.lat, c.lon, pos.coords.latitude, pos.coords.longitude) <= RADIUS_KM) verified = true; });
+                    if (!verified) { alert("Access Denied: Voting only allowed within 5km of MAZ."); resetBtn(btn); } 
                     else { finishSignIn(id); }
                 },
-                () => { alert("Location required!"); resetBtn(btn); },
-                { enableHighAccuracy: true, timeout: 8000 }
+                () => { alert("Location access required!"); resetBtn(btn); },
+                { enableHighAccuracy: true, timeout: 10000 }
             );
         } else { finishSignIn(id); }
     } catch (e) { alert("Connection Error."); resetBtn(btn); }
 };
 
 function resetBtn(btn) { btn.innerText = "Vote Now"; btn.disabled = false; }
+
 function finishSignIn(id) {
     currentVoter = id;
     document.getElementById('voter-display').innerText = "VOTING AS: " + id;
@@ -121,38 +115,55 @@ function setupSearch(yearId) {
 }
 
 window.confirmVote = async function() {
+    // RESET THE VOTE BUTTON (The Fix)
+    const voteBtn = document.getElementById('vote-btn');
+    voteBtn.disabled = false;
+    voteBtn.innerText = "Submit Official Vote";
+
     const voteCheck = await db.collection('voters').doc(`${currentVoter}_${currentYear}`).get();
     if (voteCheck.exists) { alert("Already voted for " + currentYear); localStorage.setItem(`voted_${currentYear}`, "true"); window.showSubMenu(currentCategory); return; }
+    
     hideAllSteps();
     document.getElementById('artwork-preview').innerHTML = `
         <div style="padding:40px 20px; text-align:center; background:white;">
-            <p style="font-weight:900; color:var(--red); margin:0; font-size:0.7rem; letter-spacing:2px; text-transform:uppercase;">Entry Verification</p>
+            <p style="font-weight:900; color:var(--red); margin:0; font-size:0.7rem; text-transform:uppercase;">Entry Verification</p>
             <h3 style="margin:20px 0; font-size:2rem; font-family:'Archivo Black'; text-transform:uppercase; line-height:1.1;">${currentArt.title || 'UNTITLED'}</h3>
             <div style="width:40px; height:6px; background:var(--black); margin:0 auto 15px auto;"></div>
             <p style="font-weight:700; font-size:1.2rem; margin:0;">Artist: ${currentArt.artist}</p>
-            <p style="font-size:0.8rem; margin-top:10px; opacity:0.6;">BOOTH: ${currentArt.id} | ${currentYear}</p>
+            <p style="font-size:0.8rem; margin-top:10px; opacity:0.6;">BOOTH: ${currentArt.id} | LEVEL: ${currentYear}</p>
         </div>
         <div style="background:var(--yellow); font-weight:900; text-align:center; padding:15px; border-top:6px solid black; margin:0; font-size:0.9rem;">CONFIRM SELECTION</div>`;
     document.getElementById('step-confirm').classList.remove('hidden');
 };
 
 window.submitVote = async function() {
-    const btn = document.getElementById('vote-btn'); btn.disabled = true; btn.innerText = "RECORDING...";
+    const btn = document.getElementById('vote-btn'); 
+    btn.disabled = true; 
+    btn.innerText = "RECORDING...";
+    
     try {
         const batch = db.batch();
         batch.update(db.collection('artworks').doc(currentArt.id), { voteCount: firebase.firestore.FieldValue.increment(1) });
         batch.set(db.collection('voters').doc(`${currentVoter}_${currentYear}`), { timestamp: firebase.firestore.FieldValue.serverTimestamp() });
         await batch.commit();
+        
         localStorage.setItem(`voted_${currentYear}`, "true");
         confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#e63946', '#1d3557', '#ffb703'] });
+        
         document.getElementById('success-year').innerText = currentYear;
-        hideAllSteps(); document.getElementById('success-message').classList.remove('hidden');
-    } catch (e) { alert("Error! Check connection."); btn.disabled = false; btn.innerText = "Confirm Selection"; }
+        hideAllSteps(); 
+        document.getElementById('success-message').classList.remove('hidden');
+    } catch (e) { 
+        alert("Connection Error! Try again."); 
+        btn.disabled = false; 
+        btn.innerText = "Submit Official Vote";
+    }
 };
 
 function hideAllSteps() { document.querySelectorAll('#voting-card > div, #success-message').forEach(div => div.classList.add('hidden')); }
 window.backToSubMenu = () => window.showSubMenu(currentCategory);
 window.cancelToSearch = () => { hideAllSteps(); document.getElementById('step-search').classList.remove('hidden'); };
+
 function calculateDistance(lat1, lon1, lat2, lon2) {
     const R = 6371; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180;
     const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
