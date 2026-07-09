@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MAZ ART EXPO 2026</title>
+    <title>MAZ EXPO | BROADCAST STANDINGS</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Montserrat:wght@900&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -19,18 +19,21 @@
         <!-- HEADER -->
         <div style="background: var(--black); color: white; padding: 20px 50px; display: flex; justify-content: space-between; align-items: center; border-bottom: 10px solid var(--red);">
             <div style="font-family: 'Archivo Black'; font-size: 3.5rem; letter-spacing: -2px;">MAZ ART EXPO 2026</div>
-            <div id="ticker-total-box" style="font-family: 'Archivo Black'; font-size: 2.2rem; background: var(--yellow); color: var(--black); padding: 5px 25px; border: 4px solid white;">TOTAL: <span id="total-ticker">0</span></div>
+            <div style="display:flex; align-items:center; gap:20px;">
+                <div id="nav-indicator" style="font-size:0.7rem; color:var(--white); opacity:0.5; font-family:Montserrat;">PRESS SPACE TO SKIP</div>
+                <div style="font-family: 'Archivo Black'; font-size: 2.2rem; background: var(--yellow); color: var(--black); padding: 5px 25px; border: 4px solid white;">TOTAL: <span id="total-ticker">0</span></div>
+            </div>
         </div>
 
         <!-- BROADCAST STAGE (2 Columns) -->
         <div id="broadcast-stage" style="flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; padding: 50px;">
-            <!-- Year Groups will cycle here -->
+            <!-- Content Injected via JS -->
         </div>
 
         <!-- FOOTER TICKER -->
-        <div style="background: var(--blue); color: white; height: 60px; overflow: hidden; display: flex; align-items: center; border-top: 8px solid var(--black);">
-            <div class="scrolling-text" id="live-feed" style="font-family: 'Archivo Black'; font-size: 1.5rem; text-transform: uppercase;">
-                START VOTING • MAY THE BEST ARTWORK WIN • WAIT FOR YOUR YEAR TO POP UP! • 
+        <div style="background: var(--blue); color: white; height: 70px; overflow: hidden; display: flex; align-items: center; border-top: 8px solid var(--black);">
+            <div class="scrolling-text" style="font-family: 'Archivo Black'; font-size: 1.8rem; text-transform: uppercase; letter-spacing: 3px;">
+                START VOTING • MAY THE BEST ARTWORK WIN • WAIT FOR YOUR YEAR TO POP UP! • CAST YOUR VOTE VIA THE OFFICIAL QR CODE • ON-SITE VERIFICATION ACTIVE • 
             </div>
         </div>
     </div>
@@ -47,6 +50,7 @@
 
         let currentPairIndex = 0;
         let allData = [];
+        let autoCycle;
 
         // 1. DATA SYNC
         db.collection('artworks').onSnapshot(snap => {
@@ -57,12 +61,30 @@
             renderStage();
         });
 
-        // 2. AUTO-CYCLE (Every 10 seconds)
-        setInterval(() => {
+        // 2. NAVIGATION LOGIC
+        function nextSlide() {
             currentPairIndex += 2;
             if (currentPairIndex >= groups.length) currentPairIndex = 0;
             renderStage();
-        }, 10000);
+            resetTimer();
+        }
+
+        function resetTimer() {
+            clearInterval(autoCycle);
+            autoCycle = setInterval(nextSlide, 10000); // 10s auto-rotate
+        }
+
+        // 3. KEYBOARD LISTENER (SPACE BAR)
+        window.addEventListener('keydown', (e) => {
+            if (e.code === "Space" || e.keyCode === 32) {
+                e.preventDefault(); // Prevent page jump
+                console.log("Space pressed: Jumping to next slide...");
+                nextSlide();
+            }
+        });
+
+        // Start the first timer
+        resetTimer();
 
         function renderStage() {
             const stage = document.getElementById('broadcast-stage');
@@ -80,29 +102,22 @@
                 let inner = `<div class="stage-header-new" style="background:${getCol(g.c)}; color:${g.c==='secondary'?'black':'white'}">${g.l}</div>`;
 
                 if (students.length === 0) {
-                    inner += `<div style="margin:auto; opacity:0.1; text-align:center; transform:rotate(-10deg);"><h2 style="font-family:'Archivo Black'; font-size:4rem;">AWAITING<br>VOTES</h2></div>`;
+                    inner += `<div style="margin:auto; opacity:0.1; text-align:center; transform:rotate(-5deg);"><h2 style="font-family:'Archivo Black'; font-size:4rem;">AWAITING<br>FIRST VOTE</h2></div>`;
                 } else {
                     const top = students[0];
-                    // HERO RANK #1
                     inner += `
-                        <div class="hero-box" style="border-color:${getCol(g.c)}">
-                            <div class="hero-label">CURRENT LEADER</div>
+                        <div class="hero-box" style="border-left: 15px solid ${getCol(g.c)}">
+                            <div class="hero-label">LEADER</div>
                             <div class="hero-name">${top.artist}</div>
                             <div class="hero-title">${top.title || 'Untitled'}</div>
-                            <div class="hero-votes" style="color:${getCol(g.c)}">${top.voteCount} <small>VOTES</small></div>
+                            <div class="hero-votes">${top.voteCount} <small>VOTES</small></div>
                         </div>
                     `;
 
-                    // RUNNERS UP
                     if (students.length > 1) {
                         inner += `<div class="runners-list">`;
                         students.slice(1, 4).forEach((s, i) => {
-                            inner += `
-                                <div class="runner-item">
-                                    <span>#${i+2} ${s.artist}</span>
-                                    <span class="runner-v">${s.voteCount}</span>
-                                </div>
-                            `;
+                            inner += `<div class="runner-item"><span>#${i+2} ${s.artist}</span><span style="color:${getCol(g.c)}">${s.voteCount}</span></div>`;
                         });
                         inner += `</div>`;
                     }
@@ -120,22 +135,21 @@
     </script>
 
     <style>
-        .stage-column-new { display: flex; flex-direction: column; background: white; border: 8px solid var(--black); box-shadow: 20px 20px 0px var(--black); animation: slideUp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        .stage-header-new { font-family: 'Archivo Black'; font-size: 2.5rem; text-align: center; padding: 15px; border-bottom: 8px solid var(--black); }
+        .stage-column-new { display: flex; flex-direction: column; background: white; border: 8px solid var(--black); box-shadow: 20px 20px 0px var(--black); animation: slamIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .stage-header-new { font-family: 'Archivo Black'; font-size: 2.8rem; text-align: center; padding: 15px; border-bottom: 8px solid var(--black); }
         
-        .hero-box { padding: 30px; position: relative; flex: 1; display: flex; flex-direction: column; justify-content: center; }
-        .hero-label { font-family: 'Archivo Black'; font-size: 0.8rem; letter-spacing: 2px; opacity: 0.4; margin-bottom: 10px; }
-        .hero-name { font-family: 'Archivo Black'; font-size: 3.5rem; line-height: 1; text-transform: uppercase; }
-        .hero-title { font-weight: 700; font-size: 1.2rem; opacity: 0.5; text-transform: uppercase; margin-top: 5px; }
-        .hero-votes { font-family: 'Archivo Black'; font-size: 5rem; text-align: right; line-height: 0.8; margin-top: 20px; }
-        .hero-votes small { font-size: 1.2rem; color: var(--black); }
+        .hero-box { padding: 40px; flex: 1; display: flex; flex-direction: column; justify-content: center; background: #fafafa; }
+        .hero-label { font-family: 'Archivo Black'; font-size: 0.9rem; letter-spacing: 3px; margin-bottom: 10px; opacity: 0.3; }
+        .hero-name { font-family: 'Archivo Black'; font-size: 4rem; line-height: 1; text-transform: uppercase; }
+        .hero-title { font-weight: 700; font-size: 1.5rem; opacity: 0.4; text-transform: uppercase; margin-top: 10px; }
+        .hero-votes { font-family: 'Archivo Black'; font-size: 6rem; text-align: right; line-height: 0.8; margin-top: 20px; color: var(--black); }
+        .hero-votes small { font-size: 1.5rem; }
 
-        .runners-list { background: #f0f0f0; border-top: 4px solid var(--black); padding: 15px 30px; display: flex; flex-direction: column; gap: 8px; }
-        .runner-item { display: flex; justify-content: space-between; font-weight: 900; text-transform: uppercase; font-size: 1.1rem; }
-        .runner-v { color: var(--red); }
+        .runners-list { background: white; border-top: 6px solid var(--black); padding: 20px 40px; display: flex; flex-direction: column; gap: 10px; }
+        .runner-item { display: flex; justify-content: space-between; font-weight: 900; text-transform: uppercase; font-size: 1.3rem; border-bottom: 2px solid #eee; padding-bottom: 5px; }
 
-        @keyframes slideUp { from { opacity:0; transform: translateY(50px); } to { opacity:1; transform: translateY(0); } }
-        .scrolling-text { white-space: nowrap; animation: scroll-left 30s linear infinite; }
+        @keyframes slamIn { from { transform: scale(1.1); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .scrolling-text { white-space: nowrap; animation: scroll-left 25s linear infinite; }
         @keyframes scroll-left { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
     </style>
 </body>
