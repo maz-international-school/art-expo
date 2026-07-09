@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8"><title>Control Center | Art Expo 2026</title>
+    <meta charset="UTF-8"><title>Admin | Art Expo</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -17,26 +17,28 @@
                 <div class="card">
                     <h2>System Status</h2>
                     <p>Voting: <b id="status-label">LOADING</b> | GPS: <b id="geo-label">LOADING</b></p>
+                    <p>Live Voters: <b id="active-voters">0</b></p>
                     <div style="display:flex; gap:10px;"><button onclick="toggleSet('isOpen',true)" style="background:#27ae60;">UNLOCK</button><button onclick="toggleSet('isOpen',false)" style="background:var(--black);">LOCK</button></div>
                     <div style="display:flex; gap:10px; margin-top:10px;"><button onclick="toggleSet('isGeofenceEnabled',true)" style="background:var(--blue);">GPS ON</button><button onclick="toggleSet('isGeofenceEnabled',false)" style="background:var(--black);">GPS OFF</button></div>
                 </div>
-                <div class="card">
-                    <h2>Launch Day Reset</h2>
-                    <button onclick="resetExpoForLaunch()" style="background:var(--black); border-color:var(--red);">WIPE TEST DATA</button>
+                <div class="card" style="background:#fff0f0;">
+                    <h2>Nuclear</h2>
+                    <button onclick="nuclearWipe()" style="background:var(--black); border-color:var(--red); margin-bottom:10px;">DELETE ALL ARTWORKS</button>
+                    <button onclick="resetExpoForLaunch()" style="background:var(--red);">WIPE VOTES ONLY</button>
                 </div>
-                <div class="card"><h2>Bulk Upload</h2><input type="file" id="csv-file" accept=".csv"><button onclick="bulkUpload()" id="upload-btn">Sync Namelist</button><div id="upload-status"></div></div>
+                <div class="card"><h2>Bulk CSV</h2><input type="file" id="csv-file" accept=".csv"><button onclick="bulkUpload()" id="upload-btn">Sync Namelist</button><div id="upload-status"></div></div>
             </div>
             <div class="card">
                 <h2 id="form-title">Add/Edit Artist</h2>
-                <input type="text" id="a-code" placeholder="Booth Code"><input type="text" id="a-artist" placeholder="Student Name"><input type="text" id="a-title" placeholder="Art Title"><input type="text" id="a-year" placeholder="Year Group (e.g. KG1, Y7, Y11)">
+                <input type="text" id="a-code" placeholder="Code"><input type="text" id="a-artist" placeholder="Name"><input type="text" id="a-title" placeholder="Title"><input type="text" id="a-year" placeholder="Year Group (KG1, Y7, etc)">
                 <select id="a-cat"><option value="kindergarten">KG</option><option value="primary">Primary</option><option value="secondary">Secondary</option></select>
                 <button onclick="saveArt()">Save to DB</button>
                 <button onclick="resetForm()" id="cancel-btn" class="hidden">Cancel Edit</button>
             </div>
         </div>
-        <div class="card" style="margin-top:40px; width:100%;">
-            <div style="display:flex; justify-content:space-between;"><h2>Live Database</h2><button onclick="exportCSV()" style="width:auto; padding:10px 20px; font-size:0.7rem; background:var(--yellow); color:black;">Export Final CSV</button></div>
-            <input type="text" id="db-search" placeholder="Quick Search...">
+        <div class="card" style="margin-top: 40px; width: 100%;">
+            <div style="display:flex; justify-content:space-between;"><h2>Database</h2><button onclick="exportCSV()" style="width:auto; padding:10px 20px; font-size:0.7rem; background:var(--yellow); color:black;">Export Final CSV</button></div>
+            <input type="text" id="db-search" placeholder="Search students...">
             <div id="admin-results" style="max-height:500px; overflow-y:auto;"></div>
         </div>
     </div>
@@ -45,13 +47,15 @@
         let fullLocalData = [];
         async function toggleSet(k,v){ await db.collection('settings').doc('status').set({[k]:v},{merge:true}); }
         db.collection('settings').doc('status').onSnapshot(d => { if(d.exists){ document.getElementById('status-label').innerText = d.data().isOpen?'OPEN':'LOCKED'; document.getElementById('geo-label').innerText = d.data().isGeofenceEnabled?'ACTIVE':'OFF'; }});
-        async function saveArt(){ const code = document.getElementById('a-code').value.toUpperCase(); const artist = document.getElementById('a-artist').value; const year = document.getElementById('a-year').value.toUpperCase(); await db.collection('artworks').doc(code).set({artist, title:document.getElementById('a-title').value, year, category:document.getElementById('a-cat').value},{merge:true}); alert("Saved!"); resetForm(); }
-        async function bulkUpload(){ const file = document.getElementById('csv-file').files[0]; Papa.parse(file,{header:true, complete:async(res)=>{ for(let item of res.data){ if(item.Code) await db.collection('artworks').doc(item.Code.toUpperCase().trim()).set({artist:item.Name, title:item.Title||"", category:item.Category.toLowerCase(), year:item.Year.toUpperCase(), voteCount:0},{merge:true}); } alert("Done!"); }}); }
-        async function resetExpoForLaunch(){ if(!confirm("WIPE ALL VOTES?")) return; const batch = db.batch(); fullLocalData.forEach(s => batch.update(db.collection('artworks').doc(s.id), {voteCount:0})); (await db.collection('voters').get()).forEach(v => batch.delete(v.ref)); await batch.commit(); alert("Clean Launch Ready!"); }
+        db.collection('voters').onSnapshot(snap => { document.getElementById('active-voters').innerText = snap.size; });
+        async function saveArt(){ const code = document.getElementById('a-code').value.toUpperCase(); await db.collection('artworks').doc(code).set({artist:document.getElementById('a-artist').value, title:document.getElementById('a-title').value, year:document.getElementById('a-year').value.toUpperCase(), category:document.getElementById('a-cat').value},{merge:true}); alert("Saved!"); resetForm(); }
+        async function bulkUpload(){ const file = document.getElementById('csv-file').files[0]; Papa.parse(file,{header:true, complete:async(res)=>{ for(let item of res.data){ if(item.Code){ await db.collection('artworks').doc(item.Code.trim().toUpperCase()).set({artist:item.Name, title:item.Title||"", category:item.Category.toLowerCase(), year:item.Year.toUpperCase(), voteCount:0},{merge:true}); } } alert("Done!"); }}); }
+        async function nuclearWipe(){ if(prompt("Type DELETE to wipe all students")==="DELETE"){ const snap=await db.collection('artworks').get(); const b=db.batch(); snap.docs.forEach(d=>b.delete(d.ref)); await b.commit(); location.reload(); }}
+        async function resetExpoForLaunch(){ if(confirm("Wipe all votes?")){ const b=db.batch(); fullLocalData.forEach(s=>b.update(db.collection('artworks').doc(s.id),{voteCount:0})); (await db.collection('voters').get()).forEach(v=>b.delete(v.ref)); await b.commit(); alert("Clean!"); }}
         function prepareEdit(id){ const s = fullLocalData.find(x=>x.id===id); document.getElementById('a-code').value=s.id; document.getElementById('a-code').disabled=true; document.getElementById('a-artist').value=s.artist; document.getElementById('a-title').value=s.title; document.getElementById('a-year').value=s.year; document.getElementById('a-cat').value=s.category; document.getElementById('cancel-btn').classList.remove('hidden'); window.scrollTo(0,0); }
         db.collection('artworks').onSnapshot(snap => { fullLocalData = snap.docs.map(doc => ({id:doc.id, ...doc.data()})); renderList(document.getElementById('db-search').value.toLowerCase()); });
         function renderList(f){ const out = document.getElementById('admin-results'); out.innerHTML = ""; fullLocalData.filter(d => d.id.toLowerCase().includes(f) || d.artist.toLowerCase().includes(f)).forEach(d => { out.innerHTML += `<div class="result-row"><div style="flex:1;"><b>${d.id}</b> ${d.artist}<br><small>${d.year} | ${d.category.toUpperCase()}</small></div><div>${d.voteCount||0} <button onclick="prepareEdit('${d.id}')" style="width:auto; padding:5px; font-size:0.6rem;">EDIT</button></div></div>`; }); }
-        function exportCSV(){ let csv = "Code,Name,Title,Category,Year,Votes\n"; fullLocalData.forEach(d => { csv += `${d.id},"${d.artist}","${d.title}",${d.category},${d.year},${d.voteCount||0}\n`; }); const blob = new Blob([csv],{type:'text/csv'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'expo_results.csv'; a.click(); }
+        function exportCSV(){ let csv = "Code,Name,Title,Category,Year,Votes\n"; fullLocalData.forEach(d => { csv += `${d.id},"${d.artist}","${d.title}",${d.category},${d.year},${d.voteCount||0}\n`; }); const blob = new Blob([csv],{type:'text/csv'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'results.csv'; a.click(); }
         function resetForm(){ document.getElementById('a-code').value=""; document.getElementById('a-code').disabled=false; document.getElementById('cancel-btn').classList.add('hidden'); }
     </script>
 </body>
