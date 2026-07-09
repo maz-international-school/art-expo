@@ -1,45 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MAZ ART EXPO | LIVE BROADCAST</title>
+    <meta charset="UTF-8"><title>MAZ ART EXPO | BROADCAST</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Montserrat:wght@900&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
 <body style="background:var(--white); padding:0; overflow:hidden; cursor:none;">
-
-    <!-- THE 3x3 LOGO ANCHOR (FROM STYLES.CSS) -->
-    <img src="image1.png" class="school-logo" alt="Logo">
-
+    <img src="image1.png" class="school-logo">
     <div style="height: 100vh; display: flex; flex-direction: column; position: relative; z-index: 2;">
-        
-        <!-- HEADER -->
         <div style="background: var(--black); color: white; padding: 20px 50px; display: flex; justify-content: space-between; align-items: center; border-bottom: 10px solid var(--red);">
-            <div style="font-family: 'Archivo Black'; font-size: 3.5rem; letter-spacing: -2px;">MAZ ART EXPO 2026</div>
+            <div style="font-family: 'Archivo Black'; font-size: 3.5rem;">MAZ ART EXPO 2026</div>
             <div style="display:flex; align-items:center; gap:20px;">
                 <div style="font-size:0.7rem; color:var(--white); opacity:0.3; font-family:Montserrat;">SPACE TO JUMP</div>
-                <div id="ticker-total-box" style="font-family: 'Archivo Black'; font-size: 2.2rem; background: var(--yellow); color: var(--black); padding: 5px 25px; border: 4px solid white;">
-                    TOTAL: <span id="master-total-ticker">0</span>
-                </div>
+                <div style="font-family: 'Archivo Black'; font-size: 2.2rem; background: var(--yellow); color: black; padding: 5px 25px; border: 4px solid white;">TOTAL: <span id="master-total-ticker">0</span></div>
             </div>
         </div>
-
-        <!-- THE STAGE (2 Columns) -->
-        <div id="broadcast-stage" style="flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; padding: 40px; background: transparent;">
-            <!-- Year Groups cycle in here -->
-        </div>
-
-        <!-- FOOTER TICKER (WITH YOUR UPDATED MESSAGE) -->
+        <div id="broadcast-stage" style="flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; padding: 40px;"></div>
         <div style="background: var(--blue); color: white; height: 70px; overflow: hidden; display: flex; align-items: center; border-top: 8px solid var(--black);">
             <div class="scrolling-text" style="font-family: 'Archivo Black'; font-size: 1.8rem; text-transform: uppercase; letter-spacing: 3px;">
                 START VOTING • MAY THE BEST ARTWORK WIN • WAIT FOR YOUR YEAR TO POP UP! • CAST YOUR VOTE VIA THE OFFICIAL QR CODE • ON-SITE VERIFICATION ACTIVE • 
             </div>
         </div>
     </div>
-
     <script src="firebase-config.js"></script>
     <script>
         const groups = [
@@ -49,132 +33,50 @@
             {id:'Y7', c:'secondary', l:'YEAR 7'}, {id:'Y8', c:'secondary', l:'YEAR 8'}, {id:'Y9', c:'secondary', l:'YEAR 9'},
             {id:'Y10', c:'secondary', l:'YEAR 10'}, {id:'Y11', c:'secondary', l:'YEAR 11'}
         ];
-
-        let currentPairIndex = 0;
-        let allData = [];
-        let autoCycle;
-
-        // 1. LISTEN TO DATABASE
+        let currentPairIndex = 0, allData = [], autoCycle;
         db.collection('artworks').onSnapshot(snap => {
             allData = snap.docs.map(doc => ({id:doc.id, ...doc.data()}));
-            let total = 0;
-            allData.forEach(d => total += (d.voteCount || 0));
+            let total = 0; allData.forEach(d => total += (d.voteCount || 0));
             document.getElementById('master-total-ticker').innerText = total;
             renderStage();
         });
-
-        // 2. NAVIGATION LOGIC
-        function nextSlide() {
-            currentPairIndex += 2;
-            if (currentPairIndex >= groups.length) currentPairIndex = 0;
-            renderStage();
-            resetTimer();
-        }
-
-        function resetTimer() {
-            clearInterval(autoCycle);
-            autoCycle = setInterval(nextSlide, 10000); // 10s auto-rotate
-        }
-
-        // 3. KEYBOARD NAV (SPACE BAR)
-        window.addEventListener('keydown', (e) => {
-            if (e.code === "Space" || e.keyCode === 32) {
-                e.preventDefault();
-                nextSlide();
-            }
-        });
-
+        function nextSlide() { currentPairIndex += 2; if (currentPairIndex >= groups.length) currentPairIndex = 0; renderStage(); resetTimer(); }
+        function resetTimer() { clearInterval(autoCycle); autoCycle = setInterval(nextSlide, 10000); }
+        window.addEventListener('keydown', (e) => { if (e.code === "Space") { e.preventDefault(); nextSlide(); } });
         resetTimer();
-
         function renderStage() {
-            const stage = document.getElementById('broadcast-stage');
-            stage.innerHTML = "";
+            const stage = document.getElementById('broadcast-stage'); stage.innerHTML = "";
             const pair = [groups[currentPairIndex], groups[currentPairIndex + 1]].filter(Boolean);
-
             pair.forEach(g => {
-                const students = allData.filter(a => a.year === g.id && (a.voteCount || 0) > 0)
-                                        .sort((a,b) => b.voteCount - a.voteCount);
-
-                const col = document.createElement('div');
-                col.className = "stage-column-new fade-in";
-                
+                const students = allData.filter(a => a.year === g.id && (a.voteCount || 0) > 0).sort((a,b) => b.voteCount - a.voteCount);
+                const col = document.createElement('div'); col.className = "stage-column-new fade-in";
                 let inner = `<div class="stage-header-new" style="background:${getCol(g.c)}; color:${g.c==='secondary'?'black':'white'}">${g.l}</div>`;
-
                 if (students.length === 0) {
                     inner += `<div style="margin:auto; opacity:0.1; text-align:center; transform:rotate(-5deg);"><h2 style="font-family:'Archivo Black'; font-size:4rem;">AWAITING<br>VOTES</h2></div>`;
                 } else {
-                    const topScore = students[0].voteCount;
-                    const leaders = students.filter(s => s.voteCount === topScore);
-                    
-                    // HERO BOX (Rank #1 or Tie)
-                    inner += `
-                        <div class="hero-box" style="border-left: 15px solid ${getCol(g.c)}">
-                            <div class="hero-label">${leaders.length > 1 ? 'JOINT LEADERS' : 'CURRENT LEADER'}</div>
-                            <div class="hero-main-row">
-                                <div class="hero-info">
-                                    <div class="hero-name">${leaders.length > 2 ? 'MULTIPLE' : leaders.map(l => l.artist).join(" & ")}</div>
-                                    <div class="hero-title">${leaders.length === 1 ? (leaders[0].title || 'Untitled') : leaders.length + ' Artists Tied'}</div>
-                                </div>
-                                <div class="hero-votes-box">
-                                    <span class="v-num">${topScore}</span>
-                                    <span class="v-label">VOTES</span>
-                                </div>
+                    const topScore = students[0].voteCount; const leaders = students.filter(s => s.voteCount === topScore);
+                    inner += `<div class="hero-box" style="border-left: 15px solid ${getCol(g.c)}">
+                        <div class="hero-label">${leaders.length > 1 ? 'JOINT LEADERS' : 'CURRENT LEADER'}</div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; gap:20px;">
+                            <div style="flex:1; min-width:0;">
+                                <div style="font-family:'Archivo Black'; font-size:3.5rem; line-height:1; text-transform:uppercase; word-wrap:break-word;">${leaders.length > 2 ? 'MULTIPLE' : leaders.map(l => l.artist).join(" & ")}</div>
+                                <div style="font-weight:700; font-size:1.2rem; opacity:0.4; text-transform:uppercase; margin-top:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${leaders.length===1?(leaders[0].title||'Untitled'):leaders.length+' Artists Tied'}</div>
                             </div>
+                            <div style="display:flex; align-items:baseline; gap:10px; flex-shrink:0;"><span style="font-family:'Archivo Black'; font-size:7rem; line-height:0.8;">${topScore}</span><span style="font-family:'Archivo Black'; font-size:1rem;">VOTES</span></div>
                         </div>
-                    `;
-
-                    // RUNNERS UP
+                    </div>`;
                     if (students.length > leaders.length) {
                         inner += `<div class="runners-list">`;
-                        // Show next 2 ranks after the leaders
                         students.slice(leaders.length, leaders.length + 2).forEach((s, i) => {
-                            inner += `
-                                <div class="runner-item">
-                                    <span>#${leaders.length + i + 1} ${s.artist}</span>
-                                    <span style="color:${getCol(g.c)}">${s.voteCount}</span>
-                                </div>
-                            `;
+                            inner += `<div class="runner-item"><span>#${leaders.length+i+1} ${s.artist}</span><span style="color:${getCol(g.c)}">${s.voteCount}</span></div>`;
                         });
                         inner += `</div>`;
                     }
                 }
-                col.innerHTML = inner;
-                stage.appendChild(col);
+                col.innerHTML = inner; stage.appendChild(col);
             });
         }
-
-        function getCol(c) {
-            if(c === 'kindergarten') return 'var(--red)';
-            if(c === 'primary') return 'var(--blue)';
-            return 'var(--yellow)';
-        }
+        function getCol(c){ return c==='kindergarten'?'var(--red)':c==='primary'?'var(--blue)':'var(--yellow)'; }
     </script>
-
-    <style>
-        .stage-column-new { display: flex; flex-direction: column; background: white; border: 8px solid var(--black); box-shadow: 20px 20px 0px var(--black); overflow: hidden; }
-        .stage-header-new { font-family: 'Archivo Black'; font-size: 2.8rem; text-align: center; padding: 15px; border-bottom: 8px solid var(--black); }
-        
-        .hero-box { padding: 30px; flex: 1; display: flex; flex-direction: column; justify-content: center; background: #fafafa; min-width: 0; }
-        .hero-label { font-family: 'Archivo Black'; font-size: 0.9rem; letter-spacing: 3px; margin-bottom: 10px; opacity: 0.3; }
-        
-        .hero-main-row { display: flex; justify-content: space-between; align-items: center; gap: 20px; width: 100%; }
-        .hero-info { flex: 1; min-width: 0; }
-        .hero-name { font-family: 'Archivo Black'; font-size: 3.5rem; line-height: 1; text-transform: uppercase; word-wrap: break-word; overflow-wrap: break-word; }
-        .hero-title { font-weight: 700; font-size: 1.2rem; opacity: 0.4; text-transform: uppercase; margin-top: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        
-        .hero-votes-box { display: flex; align-items: baseline; gap: 10px; flex-shrink: 0; }
-        .v-num { font-family: 'Archivo Black'; font-size: 7rem; line-height: 0.8; }
-        .v-label { font-family: 'Archivo Black'; font-size: 1rem; }
-
-        .runners-list { background: white; border-top: 6px solid var(--black); padding: 15px 30px; display: flex; flex-direction: column; gap: 8px; }
-        .runner-item { display: flex; justify-content: space-between; font-weight: 900; text-transform: uppercase; font-size: 1.2rem; border-bottom: 1px solid #eee; padding-bottom: 5px; }
-        .runner-item span:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 15px; }
-
-        .fade-in { animation: slam 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        @keyframes slam { from { transform: scale(1.1); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-
-        .scrolling-text { white-space: nowrap; animation: scroll-left 30s linear infinite; }
-        @keyframes scroll-left { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
-    </style>
 </body>
 </html>
