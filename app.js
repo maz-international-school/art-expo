@@ -1,212 +1,165 @@
 // ==========================================
-// ADMIN CONTROL - LA FINALE v5.0 (STABLE)
+// MAZ ART EXPO 2026 - FRICTIONLESS ENGINE
 // ==========================================
 
-let fullLocalData = []; // Local cache to save 'Read' quota
+let currentVoter = ""; // Automatically generated
+let currentArt = null;
+let allArtworks = []; 
+let currentCategory = ""; 
+let currentYear = "";     
 
-// 2. SETTINGS CONTROL (Kill-Switch & GPS)
-async function toggleSet(key, value) {
-    try {
-        await db.collection('settings').doc('status').set({ [key]: value }, { merge: true });
-    } catch (e) { alert("Settings error: " + e.message); }
-}
+const CAMPUSES = [{ lat: 3.0681, lon: 101.4895 }, { lat: 3.1095, lon: 101.6265 }];
+const RADIUS_KM = 5.0; 
 
-// Watch System Status
-db.collection('settings').doc('status').onSnapshot(doc => {
-    if (doc.exists) {
-        const d = doc.data();
-        const sLabel = document.getElementById('status-label');
-        const gLabel = document.getElementById('geo-label');
-        if(sLabel) { 
-            sLabel.innerText = d.isOpen ? 'OPEN' : 'LOCKED'; 
-            sLabel.style.color = d.isOpen ? '#27ae60' : 'var(--red)'; 
-        }
-        if(gLabel) { 
-            gLabel.innerText = d.isGeofenceEnabled ? 'ACTIVE (5KM)' : 'OFF'; 
-            gLabel.style.color = d.isGeofenceEnabled ? 'var(--red)' : 'var(--blue)'; 
-        }
+const YEAR_MAP = {
+    kindergarten: ['KG1', 'KG2'],
+    primary: ['Y1', 'Y2', 'Y3', 'Y4', 'Y5', 'Y6'],
+    secondary: ['Y7', 'Y8', 'Y9', 'Y10', 'Y11']
+};
+
+// 1. INITIALIZE VIRTUAL IDENTITY
+function initVoter() {
+    // Check if this device already has an ID, if not, create a random one
+    let savedId = localStorage.getItem('maz_voter_id');
+    if (!savedId) {
+        savedId = 'voter_' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('maz_voter_id', savedId);
     }
-});
+    currentVoter = savedId;
+    console.log("Voter initialized: " + currentVoter);
+}
 
-// Watch Voter Count (Real-time unique devices)
-db.collection('voters').onSnapshot(snap => {
-    const vCount = document.getElementById('active-voters');
-    if(vCount) vCount.innerText = snap.size;
-});
-
-// 3. MANUAL DATA SAVE (Add / Edit)
-async function saveArt() {
-    if (entry !== ADMIN_PASSKEY) return;
-    
-    const code = document.getElementById('a-code').value.toUpperCase().trim();
-    const artist = document.getElementById('a-artist').value.trim();
-    const title = document.getElementById('a-title').value.trim();
-    const year = document.getElementById('a-year').value.toUpperCase().trim();
-    const cat = document.getElementById('a-cat').value;
-
-    if (!code || !artist || !year) return alert("Code, Name, and Year Group are required!");
-
+// 2. DATA PRE-LOAD
+async function loadArtData() {
+    initVoter();
     try {
-        await db.collection('artworks').doc(code).set({
-            artist: artist,
-            title: title || "Untitled",
-            year: year,
-            category: cat,
-            voteCount: firebase.firestore.FieldValue.increment(0) 
-        }, { merge: true });
-        alert("Success: " + code + " updated.");
-        resetForm();
-    } catch (e) { alert("Save failed: " + e.message); }
-}
-
-// 4. THE SEARCH & LIST RENDER
-function renderList(filter = "") {
-    const out = document.getElementById('admin-results');
-    if (!out) return;
-    out.innerHTML = "";
-
-    const query = filter.toLowerCase();
-
-    const filtered = fullLocalData.filter(d => {
-        return (d.artist || "").toLowerCase().includes(query) || 
-               (d.id || "").toLowerCase().includes(query) || 
-               (d.year || "").toLowerCase().includes(query);
-    });
-
-    filtered.forEach(d => {
-        const row = document.createElement('div');
-        row.className = "result-row";
-        row.innerHTML = `
-            <div style="flex:1;">
-                <b style="color:var(--red)">${d.id}</b> ${d.artist}
-                <br><small>${d.year || 'NO YEAR'} | ${d.category.toUpperCase()} | "${d.title || 'Untitled'}"</small>
-            </div>
-            <div style="display:flex; align-items:center; gap:10px;">
-                <span style="background:var(--blue); color:white; padding:2px 8px; font-weight:900;">${d.voteCount || 0}</span>
-                <button onclick="prepareEdit('${d.id}')" style="width:auto; padding:5px 10px; font-size:0.6rem; background:var(--yellow); color:black; border:2px solid black; cursor:pointer;">EDIT</button>
-                <button onclick="deleteArt('${d.id}')" style="width:auto; padding:5px 10px; font-size:0.6rem; background:var(--red); color:white; border:2px solid black; cursor:pointer;">DEL</button>
-            </div>
-        `;
-        out.appendChild(row);
-    });
-}
-
-// 5. DATABASE LISTENER (The Heart of Admin)
-db.collection('artworks').onSnapshot(snap => {
-    let total = 0;
-    fullLocalData = snap.docs.map(doc => {
-        const data = doc.data();
-        total += (data.voteCount || 0);
-        return { id: doc.id, ...data };
-    });
-
-    const totDisp = document.getElementById('total-votes');
-    if (totDisp) totDisp.innerText = "TOTAL VOTES: " + total;
-    
-    // Auto-update list with current search filter
-    const searchInput = document.getElementById('db-search');
-    renderList(searchInput ? searchInput.value : "");
-});
-
-// 6. BULK CSV UPLOADER
-async function bulkUpload() {
-    const file = document.getElementById('csv-file').files[0];
-    const status = document.getElementById('upload-status');
-    if (!file) return alert("Select a CSV file!");
-
-    status.innerText = "UPLOADING...";
-    
-    Papa.parse(file, {
-        header: true,
-        skipEmptyLines: true,
-        complete: async (results) => {
-            let count = 0;
-            for (let item of results.data) {
-                // Normalize headers (removes spaces and case issues)
-                const clean = {};
-                Object.keys(item).forEach(k => clean[k.trim().toLowerCase()] = item[k]);
-
-                if (clean.code) {
-                    await db.collection('artworks').doc(clean.code.trim().toUpperCase()).set({
-                        artist: (clean.name || "Unknown").trim(),
-                        title: (clean.title || "").trim(),
-                        category: (clean.category || "primary").toLowerCase().trim(),
-                        year: (clean.year || "Y1").toUpperCase().trim(),
-                        voteCount: 0
-                    }, { merge: true });
-                    count++;
-                    status.innerText = `PROCESSED: ${count}`;
-                }
-            }
-            alert("SUCCESS: " + count + " students synced.");
-            status.innerText = "";
-        }
-    });
-}
-
-// 7. MAINTENANCE TOOLS
-async function nuclearWipe() {
-    if(prompt("⚠️ TYPE 'DELETE' TO WIPE EVERY STUDENT FROM THE DATABASE") === "DELETE") {
         const snap = await db.collection('artworks').get();
-        const batch = db.batch();
-        snap.docs.forEach(doc => batch.delete(doc.ref));
-        await batch.commit();
-        alert("Database has been Nuked. Refreshing...");
-        location.reload();
+        allArtworks = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // Automatically check if system is locked on load
+        checkSystemStatus();
+    } catch (e) { setTimeout(loadArtData, 2000); }
+}
+
+async function checkSystemStatus() {
+    const statusDoc = await db.collection('settings').doc('status').get();
+    const settings = statusDoc.exists ? statusDoc.data() : { isOpen: true, isGeofenceEnabled: true };
+
+    if (!settings.isOpen) {
+        document.getElementById('voting-card').innerHTML = `
+            <div style="text-align:center; padding:20px;">
+                <h2 style="color:var(--red)">VOTING CLOSED</h2>
+                <p>The competition is currently locked by the administrator.</p>
+            </div>`;
     }
 }
+loadArtData();
 
-async function resetExpoForLaunch() {
-    if(confirm("Wipe all vote counts and voter history for launch?")) {
-        const batch = db.batch();
-        fullLocalData.forEach(s => batch.update(db.collection('artworks').doc(s.id), { voteCount: 0 }));
-        const voters = await db.collection('voters').get();
-        voters.forEach(v => batch.delete(v.ref));
-        await batch.commit();
-        alert("System Reset. Votes are now 0.");
-    }
-}
+// 3. MENU SYSTEM
+window.showMenu = function() {
+    hideAllSteps();
+    document.getElementById('step-menu').classList.remove('hidden');
+};
 
-// 8. UTILS
-function prepareEdit(id) {
-    const s = fullLocalData.find(x => x.id === id);
-    if(!s) return;
-    document.getElementById('a-code').value = s.id;
-    document.getElementById('a-code').disabled = true;
-    document.getElementById('a-artist').value = s.artist || "";
-    document.getElementById('a-title').value = s.title || "";
-    document.getElementById('a-year').value = s.year || "";
-    document.getElementById('a-cat').value = s.category || "primary";
-    document.getElementById('cancel-btn').classList.remove('hidden');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-function resetForm() {
-    document.getElementById('a-code').value = "";
-    document.getElementById('a-code').disabled = false;
-    document.getElementById('a-artist').value = "";
-    document.getElementById('a-title').value = "";
-    document.getElementById('a-year').value = "";
-    document.getElementById('cancel-btn').classList.add('hidden');
-}
-
-async function deleteArt(id) {
-    if(confirm("Permanently delete " + id + "?")) {
-        await db.collection('artworks').doc(id).delete();
-    }
-}
-
-function exportCSV() {
-    let csv = "Code,Name,Title,Category,Year,Votes\n";
-    fullLocalData.forEach(d => {
-        csv += `${d.id},"${d.artist}","${d.title}",${d.category},${d.year},${d.voteCount||0}\n`;
+window.showSubMenu = function(cat) {
+    currentCategory = cat; 
+    hideAllSteps();
+    document.getElementById('step-submenu').classList.remove('hidden');
+    document.getElementById('submenu-title').innerText = cat.toUpperCase();
+    
+    const container = document.getElementById('year-buttons-container');
+    container.innerHTML = "";
+    
+    YEAR_MAP[cat].forEach(year => {
+        const btn = document.createElement('button');
+        const hasVoted = localStorage.getItem(`voted_${year}`);
+        btn.innerText = year + (hasVoted ? " (DONE)" : "");
+        btn.className = hasVoted ? "voted-btn" : "";
+        btn.style.marginBottom = "10px";
+        if (!hasVoted) btn.onclick = () => window.pickYear(year);
+        container.appendChild(btn);
     });
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'maz_expo_results.csv';
-    a.click();
+};
+
+window.pickYear = function(year) {
+    currentYear = year; 
+    hideAllSteps();
+    document.getElementById('step-search').classList.remove('hidden');
+    document.getElementById('search-title').innerText = "SEARCH " + year;
+    document.getElementById('search-input').value = "";
+    setupSearch(year);
+};
+
+// 4. SMART SEARCH
+function setupSearch(yearId) {
+    const input = document.getElementById('search-input');
+    const results = document.getElementById('search-results');
+    const newInput = input.cloneNode(true);
+    input.parentNode.replaceChild(newInput, input);
+    newInput.addEventListener('input', () => {
+        const val = newInput.value.toLowerCase(); results.innerHTML = '';
+        if (val.length < 1) { results.classList.add('hidden'); return; }
+        const matches = allArtworks.filter(a => a.year === yearId && (a.id.toLowerCase().includes(val) || a.artist.toLowerCase().includes(val) || (a.title && a.title.toLowerCase().includes(val)))).slice(0, 6);
+        if (matches.length > 0) {
+            results.classList.remove('hidden');
+            matches.forEach(m => {
+                const div = document.createElement('div'); div.className = 'search-item';
+                const regex = new RegExp(`(${val})`, 'gi');
+                const hName = m.artist.replace(regex, `<span class="highlight-red">$1</span>`);
+                const hCode = m.id.replace(regex, `<span class="highlight-code">$1</span>`);
+                div.innerHTML = `${hCode} <strong>${hName}</strong><br><small style="margin-left:40px; opacity:0.6;">"${m.title || 'Untitled'}"</small>`;
+                div.onclick = () => { currentArt = m; window.confirmVote(); };
+                results.appendChild(div);
+            });
+        } else { results.classList.add('hidden'); }
+    });
 }
 
-// Attach Search Event
-document.getElementById('db-search').addEventListener('input', (e) => renderList(e.target.value));
+// 5. CONFIRMATION
+window.confirmVote = async function() {
+    const btn = document.getElementById('vote-btn');
+    if (btn) { btn.disabled = false; btn.innerText = "Submit Official Vote"; }
+
+    const voteCheck = await db.collection('voters').doc(`${currentVoter}_${currentYear}`).get();
+    if (voteCheck.exists) { 
+        alert("Already voted for " + currentYear); 
+        localStorage.setItem(`voted_${currentYear}`, "true"); 
+        window.showSubMenu(currentCategory); return; 
+    }
+    
+    hideAllSteps();
+    document.getElementById('artwork-preview').innerHTML = `
+        <div style="padding:40px 20px; text-align:center; background:white;">
+            <p style="font-weight:900; color:var(--red); margin:0; font-size:0.7rem; text-transform:uppercase;">Entry Verification</p>
+            <h3 style="margin:20px 0; font-size:2rem; font-family:'Archivo Black'; text-transform:uppercase; line-height:1.1;">${currentArt.title || 'UNTITLED'}</h3>
+            <div style="width:40px; height:6px; background:var(--black); margin:0 auto 25px auto;"></div>
+            <p style="font-weight:700; font-size:1.2rem; margin:0;">Artist: ${currentArt.artist}</p>
+        </div>
+        <p style="background:var(--yellow); font-weight:900; text-align:center; padding:15px; border-top:6px solid black; margin:0; font-size:0.9rem; color:black;">BOOTH: ${currentArt.id}</p>`;
+    document.getElementById('step-confirm').classList.remove('hidden');
+};
+
+// 6. FINAL SUBMIT
+window.submitVote = async function() {
+    const btn = document.getElementById('vote-btn'); if (btn.disabled) return;
+    btn.disabled = true; btn.innerText = "RECORDING...";
+    try {
+        const batch = db.batch();
+        batch.update(db.collection('artworks').doc(currentArt.id), { voteCount: firebase.firestore.FieldValue.increment(1) });
+        batch.set(db.collection('voters').doc(`${currentVoter}_${currentYear}`), { timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+        await batch.commit();
+        localStorage.setItem(`voted_${currentYear}`, "true");
+        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#e63946', '#1d3557', '#ffb703'] });
+        document.getElementById('success-year').innerText = currentYear;
+        hideAllSteps(); document.getElementById('success-message').classList.remove('hidden');
+    } catch (e) { alert("Error!"); btn.disabled = false; btn.innerText = "Submit Official Vote"; }
+};
+
+function hideAllSteps() { document.querySelectorAll('#voting-card > div, #success-message').forEach(div => div.classList.add('hidden')); }
+window.backToSubMenu = () => window.showSubMenu(currentCategory);
+window.cancelToSearch = () => { hideAllSteps(); document.getElementById('step-search').classList.remove('hidden'); };
+
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
