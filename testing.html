@@ -3,48 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MAZ EXPO 2026 | THE LEADERS</title>
+    <title>MAZ ART EXPO 2026 | LIVE CHAOS</title>
     <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesque:wght@300;500;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Montserrat:wght@900&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
-<body class="bauhaus-canvas">
+<body class="studio-canvas">
 
-    <!-- PHYSICAL GRAIN FILTER -->
-    <div class="grain-overlay"></div>
-
-    <!-- ASYMMETRIC BACKGROUND GEOMETRY -->
-    <div class="composition-layer">
-        <div class="comp-shape comp-red-bar"></div>
-        <div class="comp-shape comp-blue-circle"></div>
-        <div class="comp-shape comp-yellow-block"></div>
-        <div class="comp-line comp-line-v"></div>
+    <!-- THE CHAOS LAYER (Splotches & Splatters) -->
+    <div class="chaos-overlay">
+        <div class="splotch splotch-red"></div>
+        <div class="splotch splotch-blue"></div>
+        <div class="splotch splotch-yellow"></div>
+        <div class="splatter splat-1"></div>
+        <div class="splatter splat-2"></div>
+        <div class="splatter splat-3"></div>
+        <div class="drip-line"></div>
     </div>
 
-    <!-- THE 3x3 LOGO ANCHOR (Blocks AI Watermarks) -->
-    <img src="image1.png" class="school-logo" alt="MAZ Logo" style="bottom: 55px !important; right: 15px !important; opacity: 1 !important;">
+    <!-- THE 3x3 COLOR LOGO ANCHOR -->
+    <img src="image1.png" class="school-logo" alt="Logo" style="bottom: 55px !important; right: 15px !important; z-index: 1000; opacity: 1 !important;">
 
-    <div class="exhibition-wrapper">
-        <!-- HEADER: ASYMMETRIC SWISS STYLE -->
-        <header class="bauhaus-header">
-            <div class="header-content">
-                <div class="title-wrap">
-                    <span class="exhibition-label">EXHIBITION STANDINGS</span>
-                    <h1>MAZ ART EXPO 2026</h1>
-                </div>
-                <div class="total-votes-stamp">
-                    <div class="stamp-label">TOTAL VOTES TALLIED</div>
-                    <div id="master-total" class="stamp-number">0</div>
+    <div class="exhibition-content">
+        <!-- HEADER -->
+        <header class="chaos-header">
+            <div class="header-inner">
+                <div class="red-block"></div>
+                <h1>MAZ ART EXPO 2026</h1>
+                <div class="vote-total-stamp">
+                    <small>TOTAL TALLIED</small>
+                    <span id="master-total-ticker">0</span>
                 </div>
             </div>
-            <div class="interaction-hint">PRESS SPACEBAR TO NAVIGATE GALLERY</div>
+            <p class="nav-hint">SPACEBAR TO EXPLORE GALLERY</p>
         </header>
 
-        <!-- SCROLLABLE GALLERY FEED -->
-        <main id="standings-feed">
-            <!-- Year Groups with >0 votes appear here as "Exhibits" -->
+        <!-- STANDINGS FEED -->
+        <main id="champion-wall">
+            <!-- Year Groups with >0 votes appear here -->
         </main>
+
+        <footer class="chaos-footer">
+            <div class="scrolling-text">
+                LIVE ACTIVITY DETECTED • JALAN KRISTAL SHAH ALAM • CAST YOUR VOTE VIA THE OFFICIAL EXPO LINK • GEOFENCING ACTIVE • 
+            </div>
+        </footer>
     </div>
 
     <script src="firebase-config.js"></script>
@@ -59,72 +63,66 @@
 
         db.collection('artworks').onSnapshot(snap => {
             const data = snap.docs.map(doc => ({id:doc.id, ...doc.data()}));
-            const feed = document.getElementById('standings-feed');
-            feed.innerHTML = "";
+            const wall = document.getElementById('champion-wall');
+            wall.innerHTML = "";
             let globalTotal = 0;
-            let activeCount = 0;
+            let activeGroups = 0;
 
             groups.forEach((g) => {
                 const students = data.filter(a => a.year === g.id && (a.voteCount || 0) > 0)
                                     .sort((a,b) => (b.voteCount || 0) - (a.voteCount || 0));
                 
                 students.forEach(s => globalTotal += (s.voteCount || 0));
-
                 if (students.length === 0) return;
-                activeCount++;
+                activeGroups++;
 
                 const topScore = students[0].voteCount;
                 const leaders = students.filter(s => s.voteCount === topScore);
+                const runners = students.filter(s => s.voteCount < topScore && s.voteCount > 0);
 
-                const section = document.createElement('section');
-                section.className = "exhibit-block";
-
-                let leaderName = leaders.length > 1 ? "JOINT LEADERS" : students[0].artist;
-                let leaderTitle = leaders.length > 1 ? `${leaders.length} ARTISTS TIED` : (students[0].title || "UNTITLED");
+                const section = document.createElement('div');
+                section.className = "exhibit-card fade-in";
+                section.style.borderTop = `15px solid ${getCol(g.c)}`;
 
                 section.innerHTML = `
-                    <div class="exhibit-header">
-                        <div class="exhibit-id" style="background:${getCol(g.c)}">${g.l}</div>
-                        <div class="exhibit-line"></div>
-                    </div>
-                    <div class="exhibit-body">
-                        <div class="exhibit-main">
-                            <div class="leader-meta">CURRENT LEADER ${leaders.length > 1 ? '<span class="tie-tag">TIE</span>' : ''}</div>
-                            <h2 class="leader-name">${leaderName}</h2>
-                            <p class="leader-artwork-title">"${leaderTitle}"</p>
-                            ${students.length > leaders.length ? `
-                                <div class="runners-grid">
-                                    ${students.slice(leaders.length, leaders.length + 3).map((s, i) => `
-                                        <div class="runner-entry">
-                                            <span class="runner-rank">#${leaders.length + i + 1}</span>
-                                            <span class="runner-name">${s.artist}</span>
-                                            <span class="runner-score">${s.voteCount}</span>
-                                        </div>
-                                    `).join('')}
-                                </div>
-                            ` : ''}
+                    <div class="year-label">${g.l}</div>
+                    <div class="card-body">
+                        <div class="leader-info">
+                            <span class="status-tag">${leaders.length > 1 ? 'TIE' : 'LEADER'}</span>
+                            <div class="artist-name">${leaders.length > 2 ? 'MULTIPLE' : leaders.map(l => l.artist).join(" & ")}</div>
+                            <div class="artwork-title">${leaders.length === 1 ? (leaders[0].title || 'Untitled') : leaders.length + ' Artists Drawing'}</div>
                         </div>
-                        <div class="exhibit-score" style="color:${getCol(g.c)}">${topScore}</div>
+                        <div class="score-display" style="background:${getCol(g.c)}; color:${g.c==='secondary'?'black':'white'}">${topScore}</div>
                     </div>
+                    ${runners.length > 0 ? `
+                        <div class="runners-tray">
+                            ${runners.slice(0, 3).map((s, i) => `
+                                <div class="runner-row">
+                                    <span class="r-rank">#${leaders.length + i + 1}</span>
+                                    <span class="r-name">${s.artist}</span>
+                                    <span class="r-score">${s.voteCount}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
                 `;
-                feed.appendChild(section);
+                wall.appendChild(section);
             });
 
-            if (activeCount === 0) {
-                feed.innerHTML = `<div class="awaiting-hero">AWAITING<br>FIRST<br>BRUSHSTROKE</div>`;
+            if (activeGroups === 0) {
+                wall.innerHTML = `<div class="awaiting-votes">AWAITING<br>FIRST<br>SELECTION</div>`;
             }
-            document.getElementById('master-total').innerText = globalTotal;
+            document.getElementById('master-total-ticker').innerText = globalTotal;
         });
 
-        // MECHANICAL SCROLL (SPACEBAR)
         window.addEventListener('keydown', (e) => {
             if (e.code === "Space" || e.keyCode === 32) {
                 e.preventDefault();
-                const blocks = document.querySelectorAll('.exhibit-block');
-                const scrollPos = window.scrollY + 150;
-                for (let block of blocks) {
-                    if (block.offsetTop > scrollPos) {
-                        window.scrollTo({ top: block.offsetTop - 50, behavior: 'smooth' });
+                const cards = document.querySelectorAll('.exhibit-card');
+                const scrollPos = window.scrollY + 200;
+                for (let card of cards) {
+                    if (card.offsetTop > scrollPos) {
+                        window.scrollTo({ top: card.offsetTop - 40, behavior: 'smooth' });
                         break;
                     }
                 }
@@ -135,84 +133,60 @@
     </script>
 
     <style>
-        /* BAUHAUS DESIGN SYSTEM 2.0 */
-        .bauhaus-canvas {
-            background-color: #f2f0e9; /* Physical paper color */
-            background-image: radial-gradient(#bcbab4 1.5px, transparent 1px);
-            background-size: 40px 40px;
-            font-family: 'Space Grotesque', sans-serif;
+        .studio-canvas {
+            background: #fff;
+            background-image: linear-gradient(var(--black) 1px, transparent 1px), linear-gradient(90deg, var(--black) 1px, transparent 1px);
+            background-size: 50px 50px;
+            font-family: 'Montserrat', sans-serif;
             margin: 0;
-            color: var(--black);
+            overflow-x: hidden;
             scroll-behavior: smooth;
         }
 
-        /* GRAIN FILTER (The Pro Secret) */
-        .grain-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-image: url('https://www.transparenttextures.com/patterns/p6.png');
-            opacity: 0.15; pointer-events: none; z-index: 999;
-        }
-
-        /* ABSTRACT COMPOSITION */
-        .composition-layer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
-        .comp-shape { position: absolute; opacity: 0.8; }
-        .comp-red-bar { width: 100vw; height: 100px; background: var(--red); top: 15%; left: -20%; transform: rotate(-5deg); mix-blend-mode: multiply; }
-        .comp-blue-circle { width: 600px; height: 600px; border: 60px solid var(--blue); border-radius: 50%; top: -100px; right: -150px; opacity: 0.1; }
-        .comp-yellow-block { width: 300px; height: 300px; background: var(--yellow); bottom: 10%; left: 5%; transform: rotate(15deg); mix-blend-mode: multiply; opacity: 0.3; }
-        .comp-line-v { width: 4px; height: 100%; background: #000; left: 10%; top: 0; opacity: 0.05; }
-
-        .exhibition-wrapper { position: relative; z-index: 10; max-width: 1100px; margin: 0 auto; padding: 60px 40px; }
-
-        /* ASYMMETRIC HEADER */
-        .bauhaus-header { 
-            display: flex; flex-direction: column; align-items: flex-start; margin-bottom: 100px; border-left: 20px solid #000; padding-left: 40px;
-        }
-        .header-content { display: flex; justify-content: space-between; width: 100%; align-items: flex-start; }
-        .exhibition-label { font-family: 'Archivo Black'; font-size: 0.8rem; letter-spacing: 5px; opacity: 0.4; }
-        h1 { font-family: 'Archivo Black'; font-size: 5rem; line-height: 0.85; margin: 10px 0; letter-spacing: -4px; }
+        /* CHAOS DECORATION */
+        .chaos-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
         
-        .total-votes-stamp { text-align: right; transform: rotate(3deg); }
-        .stamp-label { font-weight: 900; font-size: 0.7rem; background: #000; color: #fff; padding: 3px 10px; }
-        .stamp-number { font-family: 'Archivo Black'; font-size: 6rem; line-height: 0.8; }
+        .splotch { position: absolute; border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; filter: blur(50px); opacity: 0.25; animation: splotch-pulse 10s infinite alternate ease-in-out; }
+        .splotch-red { width: 500px; height: 500px; background: var(--red); top: -100px; left: -100px; }
+        .splotch-blue { width: 400px; height: 400px; background: var(--blue); bottom: 10%; right: -50px; }
+        .splotch-yellow { width: 300px; height: 300px; background: var(--yellow); top: 30%; right: 20%; }
 
-        .interaction-hint { font-weight: 900; font-size: 0.7rem; margin-top: 20px; letter-spacing: 3px; opacity: 0.3; }
+        .splatter { position: absolute; background: var(--black); border-radius: 50%; opacity: 0.1; }
+        .splat-1 { width: 20px; height: 20px; top: 20%; left: 40%; box-shadow: 50px 30px 0 #000, -40px 80px 0 #000, 100px 100px 0 #000; }
+        .splat-2 { width: 15px; height: 15px; bottom: 30%; right: 30%; box-shadow: 20px -50px 0 #000, 60px 20px 0 #000; }
 
-        /* EXHIBIT BLOCKS */
-        #standings-feed { display: flex; flex-direction: column; gap: 80px; }
-        .exhibit-block { position: relative; animation: slideIn 0.8s cubic-bezier(0.19, 1, 0.22, 1) backwards; }
-        @keyframes slideIn { from { opacity: 0; transform: translateX(50px); } to { opacity: 1; transform: translateX(0); } }
+        .drip-line { position: absolute; width: 4px; height: 100%; background: var(--black); left: 15%; top: 0; opacity: 0.05; }
 
-        .exhibit-header { display: flex; align-items: center; gap: 20px; margin-bottom: 15px; }
-        .exhibit-id { font-family: 'Archivo Black'; color: white; padding: 10px 30px; font-size: 1.5rem; border: 5px solid #000; }
-        .exhibit-line { flex: 1; height: 5px; background: #000; }
-
-        .exhibit-body { background: #fff; border: 8px solid #000; padding: 50px; display: flex; justify-content: space-between; align-items: center; box-shadow: 25px 25px 0px rgba(0,0,0,0.1); }
-        
-        .exhibit-main { flex: 1; }
-        .leader-meta { font-weight: 900; font-size: 0.8rem; letter-spacing: 2px; color: var(--blue); margin-bottom: 10px; }
-        .leader-name { font-family: 'Archivo Black'; font-size: 3.5rem; line-height: 0.9; margin: 0; letter-spacing: -2px; text-transform: uppercase; }
-        .leader-artwork-title { font-size: 1.5rem; font-weight: 500; opacity: 0.4; margin-top: 10px; font-style: italic; }
-
-        .exhibit-score { font-family: 'Archivo Black'; font-size: 8rem; line-height: 0.8; }
-
-        /* RUNNERS GRID */
-        .runners-grid { margin-top: 40px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; border-top: 4px solid #000; padding-top: 30px; }
-        .runner-entry { display: flex; flex-direction: column; }
-        .runner-rank { font-family: 'Archivo Black'; font-size: 0.8rem; color: var(--red); }
-        .runner-name { font-weight: 900; font-size: 1.1rem; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .runner-score { font-family: 'Archivo Black'; font-size: 1.5rem; opacity: 0.3; }
-
-        .tie-tag { background: var(--red); color: #fff; padding: 0 5px; font-size: 0.6rem; vertical-align: middle; }
-        .awaiting-hero { padding: 100px 0; font-family: 'Archivo Black'; font-size: 6rem; line-height: 0.8; opacity: 0.05; text-align: center; }
-
-        @media (max-width: 800px) {
-            h1 { font-size: 3rem; }
-            .leader-name { font-size: 2rem; }
-            .exhibit-score { font-size: 4rem; }
-            .runners-grid { grid-template-columns: 1fr; }
-            .exhibit-body { padding: 25px; }
-            .total-votes-stamp { display: none; }
+        @keyframes splotch-pulse { 
+            0% { transform: scale(1) translate(0,0); }
+            100% { transform: scale(1.1) translate(20px, 30px); }
         }
-    </style>
-</body>
-</html>
+
+        /* UI LAYOUT */
+        .exhibition-content { position: relative; z-index: 10; max-width: 1100px; margin: 0 auto; }
+        
+        .chaos-header { padding: 80px 40px; display: flex; flex-direction: column; align-items: flex-start; }
+        .header-inner { display: flex; align-items: flex-end; gap: 40px; }
+        .red-block { width: 30px; height: 150px; background: var(--red); }
+        h1 { font-family: 'Archivo Black'; font-size: 5.5rem; line-height: 0.8; margin: 0; letter-spacing: -5px; color: #000; }
+        
+        .vote-total-stamp { border: 6px solid #000; padding: 10px 20px; transform: rotate(5deg); background: var(--yellow); }
+        .vote-total-stamp small { display: block; font-weight: 900; font-size: 0.6rem; letter-spacing: 2px; }
+        .vote-total-stamp span { font-family: 'Archivo Black'; font-size: 3rem; line-height: 1; }
+
+        .nav-hint { font-weight: 900; font-size: 0.7rem; letter-spacing: 5px; opacity: 0.3; margin-top: 30px; }
+
+        /* CARDS */
+        #champion-wall { padding: 40px; display: flex; flex-direction: column; gap: 100px; padding-bottom: 200px; }
+        .exhibit-card { background: #fff; border: 8px solid #000; box-shadow: 30px 30px 0px rgba(0,0,0,1); position: relative; }
+        .year-label { position: absolute; top: -50px; left: -8px; background: #000; color: #fff; padding: 5px 20px; font-family: 'Archivo Black'; font-size: 1.2rem; }
+        
+        .card-body { padding: 60px; display: flex; justify-content: space-between; align-items: center; }
+        .artist-name { font-family: 'Archivo Black'; font-size: 4.5rem; line-height: 0.85; letter-spacing: -3px; text-transform: uppercase; margin: 15px 0; }
+        .artwork-title { font-size: 1.5rem; font-weight: 600; opacity: 0.3; font-style: italic; }
+        .status-tag { font-weight: 900; font-size: 0.8rem; letter-spacing: 3px; color: var(--blue); }
+
+        .score-display { width: 150px; height: 150px; display: flex; align-items: center; justify-content: center; font-family: 'Archivo Black'; font-size: 6rem; border: 8px solid #000; }
+
+        .runners-tray { background: #000; color: #fff; padding: 20px 60px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; }
+        .runner-row { display: flex; justify-conte
