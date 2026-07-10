@@ -1,19 +1,25 @@
-// 1. DEFINE VARIABLES GLOBALLY
+// ==========================================
+// MAZ ART EXPO 2026 - SHAH ALAM ONLY ENGINE
+// ==========================================
+
 let currentVoter = "";
 let currentArt = null;
 let allArtworks = []; 
 let currentCategory = ""; 
 let currentYear = "";     
 
-const CAMPUSES = [{ lat: 3.0681, lon: 101.4895 }];
+// 5KM RADIUS - SHAH ALAM EXPO VENUE ONLY
+const TARGET_LAT = 3.0681; 
+const TARGET_LON = 101.4895;
 const RADIUS_KM = 5.0; 
+
 const YEAR_MAP = {
     kindergarten: ['KG1', 'KG2'],
     primary: ['Y1', 'Y2', 'Y3', 'Y4', 'Y5', 'Y6'],
     secondary: ['Y7', 'Y8', 'Y9', 'Y10', 'Y11']
 };
 
-// 2. DEFINE FUNCTIONS AT THE TOP
+// 1. UTILITIES
 function calculateDistance(lat1, lon1, lat2, lon2) {
     const R = 6371; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180;
     const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
@@ -43,48 +49,85 @@ function killSearchBox() {
 
 function hideAllSteps() { document.querySelectorAll('#voting-card > div, #success-message').forEach(div => div.classList.add('hidden')); }
 
-// 3. MAIN VOTING FUNCTIONS
-async function startVoting() {
+// 2. DATA LOAD & SYNC
+async function loadArtData() {
+    try {
+        const snap = await db.collection('artworks').get();
+        allArtworks = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        console.log("Database Sync: " + allArtworks.length + " artists ready.");
+        
+        // Listen for Global Wipe
+        db.collection('settings').doc('status').onSnapshot(doc => {
+            if (doc.exists && doc.data().lastGlobalReset) {
+                const cloudReset = doc.data().lastGlobalReset.toMillis();
+                const localReset = localStorage.getItem('maz_last_reset') || 0;
+                if (cloudReset > localReset) {
+                    Object.keys(localStorage).forEach(key => { if (key.startsWith('voted_')) localStorage.removeItem(key); });
+                    localStorage.setItem('maz_last_reset', cloudReset);
+                    if (currentVoter) window.showMenu();
+                }
+            }
+        });
+    } catch (e) { setTimeout(loadArtData, 2000); }
+}
+loadArtData();
+
+// 3. START VOTING (IDENTITY + SHAH ALAM GEOFENCE)
+window.startVoting = async function() {
     const idInput = document.getElementById('voter-id');
     const id = idInput.value.trim().toLowerCase();
     const btn = document.querySelector('#step-id button');
-    if (id.length < 5) return alert("Enter email or phone!");
+
+    if (id.length < 5) return alert("Please enter your email or phone number.");
+
     btn.innerText = "AUTHENTICATING..."; btn.disabled = true;
 
     try {
         const statusDoc = await db.collection('settings').doc('status').get();
         const settings = statusDoc.exists ? statusDoc.data() : { isOpen: true, isGeofenceEnabled: true };
-        if (!settings.isOpen) { alert("VOTING CLOSED."); btn.innerText = "Vote Now"; btn.disabled = false; return; }
+
+        if (!settings.isOpen) {
+            alert("VOTING CLOSED: The competition has ended.");
+            resetBtn(btn); return;
+        }
 
         if (settings.isGeofenceEnabled) {
-            navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                    let verified = false;
-                    CAMPUSES.forEach(c => { if(calculateDistance(c.lat, c.lon, pos.coords.latitude, pos.coords.longitude) <= RADIUS_KM) verified = true; });
-                    if (!verified) { alert("On-site only!"); btn.innerText = "Vote Now"; btn.disabled = false; } 
-                    else { proceed(id); }
-                },
-                () => { alert("Location required!"); btn.innerText = "Vote Now"; btn.disabled = false; },
-                { enableHighAccuracy: true, timeout: 8000 }
-            );
-        } else { proceed(id); }
-    } catch (e) { alert("Error connecting."); btn.innerText = "Vote Now"; btn.disabled = false; }
-}
+            btn.innerText = "VERIFYING RADIUS...";
+            const position = await new Promise((res, rej) => {
+                navigator.geolocation.getCurrentPosition(res, rej, { enableHighAccuracy: true, timeout: 8000 });
+            }).catch(() => null);
 
-function proceed(id) {
-    currentVoter = id;
-    document.getElementById('voter-display').innerText = "VOTING AS: " + id;
-    document.getElementById('voter-display').classList.remove('hidden');
-    document.getElementById('step-id').classList.add('hidden');
-    showMenu();
-}
+            if (!position) {
+                alert("Location required! Please allow GPS access and refresh.");
+                resetBtn(btn); return;
+            }
 
-function showMenu() {
+            const dist = calculateDistance(TARGET_LAT, TARGET_LON, position.coords.latitude, position.coords.longitude);
+            
+            if (dist > RADIUS_KM) {
+                alert(`ACCESS DENIED: You are ${dist.toFixed(1)}km away. Voting is strictly allowed only at the Shah Alam Expo venue.`);
+                resetBtn(btn); return;
+            }
+        }
+        
+        currentVoter = id;
+        document.getElementById('voter-display').innerText = "VOTING AS: " + id;
+        document.getElementById('voter-display').classList.remove('hidden');
+        document.getElementById('step-id').classList.add('hidden');
+        window.showMenu();
+
+    } catch (e) { alert("Error connecting. Ensure you have internet."); resetBtn(btn); }
+};
+
+function resetBtn(btn) { btn.innerText = "Start Voting"; btn.disabled = false; }
+
+// 4. MENU & CATEGORY LOGIC
+window.showMenu = function() {
     killSearchBox(); hideAllSteps();
     document.getElementById('step-menu').classList.remove('hidden');
-}
+};
 
-function showSubMenu(cat) {
+window.showSubMenu = function(cat) {
     currentCategory = cat; killSearchBox(); hideAllSteps();
     document.getElementById('step-submenu').classList.remove('hidden');
     document.getElementById('submenu-title').innerText = cat.toUpperCase();
@@ -95,17 +138,17 @@ function showSubMenu(cat) {
         const hasVoted = localStorage.getItem(`voted_${year}`);
         btn.innerText = year + (hasVoted ? " (DONE)" : "");
         btn.className = hasVoted ? "voted-btn" : "";
-        if (!hasVoted) btn.onclick = () => pickYear(year);
+        if (!hasVoted) btn.onclick = () => window.pickYear(year);
         container.appendChild(btn);
     });
-}
+};
 
-function pickYear(year) {
+window.pickYear = function(year) {
     currentYear = year.toUpperCase().trim(); killSearchBox(); hideAllSteps();
     document.getElementById('step-search').classList.remove('hidden');
-    document.getElementById('search-title').innerText = "SEARCHING " + currentYear;
+    document.getElementById('search-title').innerText = "VOTING FOR " + currentYear;
     setupSearch();
-}
+};
 
 function setupSearch() {
     const input = document.getElementById('search-input');
@@ -115,6 +158,7 @@ function setupSearch() {
     newInput.addEventListener('input', () => {
         const val = newInput.value.toLowerCase().trim(); results.innerHTML = '';
         if (val.length < 1) { results.classList.add('hidden'); return; }
+
         const matches = allArtworks.filter(a => a.year === currentYear && (a.id.toLowerCase().includes(val) || a.artist.toLowerCase().includes(val) || (a.title && a.title.toLowerCase().includes(val)))).slice(0, 6);
         if (matches.length > 0) {
             results.classList.remove('hidden');
@@ -124,14 +168,15 @@ function setupSearch() {
                 const hName = m.artist.replace(regex, `<span class="highlight-red">$1</span>`);
                 const hCode = m.id.replace(regex, `<span class="highlight-code">$1</span>`);
                 div.innerHTML = `${hCode} <strong>${hName}</strong><br><small style="margin-left:40px; opacity:0.6;">"${m.title || 'Untitled'}"</small>`;
-                div.onclick = () => { currentArt = m; killSearchBox(); confirmVote(); };
+                div.onclick = () => { currentArt = m; killSearchBox(); window.confirmVote(); };
                 results.appendChild(div);
             });
         } else { results.classList.add('hidden'); }
     });
 }
 
-async function confirmVote() {
+// 5. CONFIRMATION
+window.confirmVote = async function() {
     const btn = document.getElementById('vote-btn');
     if (btn) { btn.disabled = false; btn.innerText = "Submit Official Vote"; }
 
@@ -139,11 +184,11 @@ async function confirmVote() {
     const settings = statusDoc.exists ? statusDoc.data() : { isDNALockEnabled: false };
 
     const voteCheck = await db.collection('voters').doc(`${currentVoter}_${currentYear}`).get();
-    if (voteCheck.exists) { alert("Already voted!"); localStorage.setItem(`voted_${currentYear}`, "true"); showSubMenu(currentCategory); return; }
+    if (voteCheck.exists) { alert("Already voted for " + currentYear); localStorage.setItem(`voted_${currentYear}`, "true"); window.showSubMenu(currentCategory); return; }
 
     if (settings.isDNALockEnabled) {
         const dnaCheck = await db.collection('voters').where('dna', '==', getDeviceDNA()).where('year', '==', currentYear).get();
-        if (!dnaCheck.empty) { alert("Hardware lock active."); localStorage.setItem(`voted_${currentYear}`, "true"); showSubMenu(currentCategory); return; }
+        if (!dnaCheck.empty) { alert("HARDWARE LOCK: Device already used for " + currentYear); localStorage.setItem(`voted_${currentYear}`, "true"); window.showSubMenu(currentCategory); return; }
     }
     
     hideAllSteps();
@@ -154,11 +199,12 @@ async function confirmVote() {
             <div style="width:40px; height:6px; background:var(--black); margin:0 auto 25px auto;"></div>
             <p style="font-weight:700; font-size:1.2rem; margin:0;">Artist: ${currentArt.artist}</p>
         </div>
-        <p style="background:var(--yellow); font-weight:900; text-align:center; padding:15px; border-top:6px solid black; margin:0;">${currentArt.id}</p>`;
+        <p style="background:var(--yellow); font-weight:900; text-align:center; padding:15px; border-top:6px solid black; margin:0; font-size:0.9rem; color:black;">BOOTH: ${currentArt.id}</p>`;
     document.getElementById('step-confirm').classList.remove('hidden');
-}
+};
 
-async function submitVote() {
+// 6. SUBMIT
+window.submitVote = async function() {
     const btn = document.getElementById('vote-btn'); if (btn.disabled) return;
     btn.disabled = true; btn.innerText = "RECORDING...";
     try {
@@ -169,18 +215,10 @@ async function submitVote() {
         localStorage.setItem(`voted_${currentYear}`, "true");
         document.getElementById('success-artist').innerText = currentArt.artist;
         document.getElementById('success-year').innerText = currentYear;
-        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#e63946', '#1d3557', '#ffb703'] });
         hideAllSteps(); document.getElementById('success-message').classList.remove('hidden');
     } catch (e) { alert("Error!"); btn.disabled = false; btn.innerText = "Submit Official Vote"; }
-}
+};
 
-function backToSubMenu() { killSearchBox(); showSubMenu(currentCategory); }
-function cancelToSearch() { killSearchBox(); hideAllSteps(); document.getElementById('step-search').classList.remove('hidden'); }
-
-// 4. DATA SYNC
-async function loadArtData() {
-    try {
-        const snap = await db.collection('artworks').get();
-        allArtworks = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (e) { setTimeout(loadArtData, 2000); }
-}
+window.backToSubMenu = () => { killSearchBox(); window.showSubMenu(currentCategory); };
+window.cancelToSearch = () => { killSearchBox(); hideAllSteps(); document.getElementById('step-search').classList.remove('hidden'); };
