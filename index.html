@@ -6,17 +6,10 @@
     <title>Vote | MAZ Art Expo 2026</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
-    
-    <!-- CELEBRATION LIBRARY (Lightweight) -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 <body>
-    <!-- BEAUTIFICATION: FLOATING SHAPES -->
-    <div class="shape circle"></div>
-    <div class="shape square"></div>
-    <div class="shape triangle"></div>
-    
-    <!-- THE 3x3 COLOR LOGO ANCHOR -->
+    <div class="shape circle"></div><div class="shape square"></div><div class="shape triangle"></div>
     <img src="image1.png" class="school-logo" alt="MAZ Logo">
 
     <div class="container">
@@ -26,66 +19,46 @@
         </header>
 
         <div class="card" id="voting-card">
-            <!-- STEP 0: IDENTITY -->
             <div id="step-id">
                 <h2>Cast Your Vote</h2>
-                <p style="font-size: 0.8rem; margin-bottom: 20px; color: #666;">Enter your Email or Phone to begin. One vote per Year Group is permitted.</p>
                 <input type="text" id="voter-id" placeholder="Email or Phone Number">
-                <button type="button" onclick="window.startVoting()">Enter Expo</button>
+                <button type="button" onclick="startVoting()">Vote Now</button>
             </div>
-
-            <!-- STEP 1: MAIN MENU (Categories) -->
             <div id="step-menu" class="hidden">
-                <h2>Select Level</h2>
-                <p style="font-size: 0.7rem; margin-bottom: 20px; font-weight: 700; opacity: 0.6;">CHOOSE A CATEGORY TO VIEW ARTISTS</p>
-                <button onclick="window.showSubMenu('kindergarten')" style="margin-bottom:15px; background:var(--red);">KINDERGARTEN</button>
-                <button onclick="window.showSubMenu('primary')" style="margin-bottom:15px; background:var(--blue);">PRIMARY</button>
-                <button onclick="window.showSubMenu('secondary')" style="margin-bottom:15px; background:var(--black);">SECONDARY</button>
-                <button onclick="location.reload()" style="background:none; color:var(--blue); border:none; text-decoration:underline; font-size:0.7rem; width:100%; cursor:pointer;">Sign Out</button>
+                <h2>Select Category</h2>
+                <button onclick="showSubMenu('kindergarten')" id="btn-kindergarten" style="margin-bottom:15px; background:var(--red);">KINDERGARTEN</button>
+                <button onclick="showSubMenu('primary')" id="btn-primary" style="margin-bottom:15px; background:var(--blue);">PRIMARY</button>
+                <button onclick="showSubMenu('secondary')" id="btn-secondary" style="margin-bottom:15px; background:var(--black);">SECONDARY</button>
             </div>
-
-            <!-- STEP 1.5: YEAR SUB-MENU -->
             <div id="step-submenu" class="hidden">
                 <h2 id="submenu-title">Select Year</h2>
-                <div id="year-buttons-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <!-- Buttons like Y7, Y8 injected via JS -->
-                </div>
-                <button onclick="window.showMenu()" style="background:none; color:var(--black); border:none; text-decoration:underline; font-size:0.7rem; margin-top:20px; width:100%; cursor:pointer;">Back to Levels</button>
+                <div id="year-buttons-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;"></div>
+                <button onclick="showMenu()" style="background:none; color:var(--black); border:none; text-decoration:underline; font-size:0.7rem; margin-top:20px; width:100%;">Back to Categories</button>
             </div>
-
-            <!-- STEP 2: SEARCH -->
             <div id="step-search" class="hidden">
                 <h2 id="search-title">Search</h2>
-                <p style="font-size:0.7rem; font-weight:900; color:var(--red); margin-bottom:15px;">BOOTH NO., NAME, OR TITLE</p>
                 <div style="position:relative;">
                     <input type="text" id="search-input" placeholder="Type here..." autocomplete="off">
                     <div id="search-results" class="search-suggestions hidden"></div>
                 </div>
-                <button onclick="window.backToSubMenu()" style="background:none; color:var(--red); border:none; text-decoration:underline; font-size:0.7rem; margin-top:20px; width:100%; cursor:pointer;">Cancel</button>
+                <button onclick="backToSubMenu()" style="background:none; color:var(--red); border:none; text-decoration:underline; font-size:0.7rem; margin-top:20px; width:100%;">Cancel</button>
             </div>
-
-            <!-- STEP 3: CONFIRMATION -->
             <div id="step-confirm" class="hidden">
                 <div id="artwork-preview"></div>
-                <button type="button" id="vote-btn" onclick="window.submitVote()">Submit Official Vote</button>
-                <button onclick="window.cancelToSearch()" style="background:none; color:var(--blue); border:none; text-decoration:underline; font-size:0.7rem; margin-top:15px; width:100%; cursor:pointer;">Change Selection</button>
+                <button type="button" id="vote-btn" onclick="submitVote()">Submit Official Vote</button>
+                <button onclick="cancelToSearch()" style="background:none; color:var(--blue); border:none; text-decoration:underline; font-size:0.7rem; margin-top:15px; width:100%;">Go Back</button>
             </div>
         </div>
-
-        <!-- SUCCESS MESSAGE (WITH PROOF IDs) -->
         <div id="success-message" class="card hidden">
             <h2 style="color: var(--red)">VOTE RECORDED!</h2>
             <div style="padding: 20px; border: 4px solid var(--black); margin-bottom: 20px; background:#f9f9f9;">
-                <p style="margin:0; font-size: 0.7rem; font-weight: 900; color: var(--red); letter-spacing:1px;">OFFICIAL SELECTION:</p>
-                <!-- THESE IDs MUST EXIST FOR THE JS TO WORK -->
                 <p id="success-artist" style="font-size: 1.5rem; font-weight: 900; margin: 8px 0; text-transform: uppercase; line-height:1.1;"></p>
-                <p style="margin:0; font-size: 0.8rem; font-weight: 700;">YEAR GROUP: <span id="success-year" style="color:var(--blue)"></span></p>
+                <p style="margin:0; font-size: 0.8rem; font-weight: 700;">Group: <span id="success-year" style="color:var(--blue)"></span></p>
             </div>
-            <button type="button" onclick="window.showMenu()">Vote in another Year</button>
+            <button type="button" onclick="showSubMenu(currentCategory)">Vote in another Year</button>
         </div>
     </div>
 
-    <!-- CORE SCRIPTS -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="firebase-config.js"></script>
