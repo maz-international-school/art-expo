@@ -2,9 +2,6 @@
 // ADMIN CONTROL - LA FINALE v5.0 (STABLE)
 // ==========================================
 
-
-}
-
 let fullLocalData = []; // Local cache to save 'Read' quota
 
 // 2. SETTINGS CONTROL (Kill-Switch & GPS)
