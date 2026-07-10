@@ -2,17 +2,7 @@
 // ADMIN CONTROL - LA FINALE v5.0 (STABLE)
 // ==========================================
 
-// 1. SECURITY GATEKEEPER
-const ADMIN_PASSKEY = "maz_admin_2026"; // CHANGE THIS to your secret password
-document.body.style.display = "none"; 
 
-const entry = prompt("MAZ ADMIN ACCESS: Enter Security Passkey");
-
-if (entry !== ADMIN_PASSKEY) {
-    alert("ACCESS DENIED.");
-    window.location.href = "index.html"; 
-} else {
-    document.body.style.display = "block"; 
 }
 
 let fullLocalData = []; // Local cache to save 'Read' quota
