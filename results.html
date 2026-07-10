@@ -11,7 +11,7 @@
 </head>
 <body class="dotted-bg">
 
-    <!-- BOLD ABSTRACT DESIGN LAYER -->
+    <!-- BOLD ABSTRACT DESIGN LAYER (Behind Content) -->
     <div class="aura-background">
         <div class="aura-shape aura-circle"></div>
         <div class="aura-shape aura-square"></div>
@@ -54,7 +54,7 @@
             {id:'KG1', c:'kindergarten', l:'KG 1'}, {id:'KG2', c:'kindergarten', l:'KG 2'},
             {id:'Y1', c:'primary', l:'YEAR 1'}, {id:'Y2', c:'primary', l:'YEAR 2'}, {id:'Y3', c:'primary', l:'YEAR 3'},
             {id:'Y4', c:'primary', l:'YEAR 4'}, {id:'Y5', c:'primary', l:'YEAR 5'}, {id:'Y6', c:'primary', l:'YEAR 6'},
-            {id:'Y7', c:'secondary', l:'YEAR 7'}, {id:'Y8', c:'secondary', l:'YEAR 8'}, {id:'Y9', c:'secondary', l:'YEAR 9'},
+            {id:'Y7', c:'secondary', l:'YEAR 7'}, {id:'Y8', c:'secondary', l : 'YEAR 8'}, {id:'Y9', c:'secondary', l:'YEAR 9'},
             {id:'Y10', c:'secondary', l:'YEAR 10'}, {id:'Y11', c:'secondary', l:'YEAR 11'}
         ];
 
@@ -145,18 +145,66 @@
             overflow-x: hidden;
         }
 
-        /* BOLD ABSTRACT ELEMENTS */
+        /* BOLD ABSTRACT BACKGROUND ELEMENTS */
         .aura-background { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
-        .aura-shape { position: absolute; opacity: 0.25; } /* Bolder opacity */
+        .aura-shape { position: absolute; opacity: 0.35; } /* Higher visibility for LED */
         
-        .aura-circle { width: 400px; height: 400px; background: var(--blue); border-radius: 50%; top: -100px; right: -100px; animation: aura-drift 25s infinite linear; }
-        .aura-square { width: 200px; height: 200px; border: 30px solid var(--yellow); bottom: 10%; left: -50px; transform: rotate(15deg); animation: aura-drift 20s infinite reverse linear; }
+        .aura-circle { width: 450px; height: 450px; background: #5AC8FA; border-radius: 50%; top: -100px; right: -50px; animation: aura-drift 20s infinite linear; }
+        .aura-square { width: 220px; height: 220px; border: 35px solid var(--yellow); bottom: 15%; left: 5%; transform: rotate(15deg); animation: aura-drift 15s infinite reverse ease-in-out; }
         .aura-triangle { 
-            width: 0; height: 0; border-left: 150px solid transparent; border-right: 150px solid transparent; border-bottom: 250px solid var(--red);
-            top: 20%; left: 10%; opacity: 0.15; transform: rotate(-20deg);
+            width: 0; height: 0; border-left: 140px solid transparent; border-right: 140px solid transparent; border-bottom: 240px solid var(--red);
+            top: 25%; left: 8%; opacity: 0.25; transform: rotate(-25deg);
         }
         
-        .aura-line { position: absolute; background: var(--black); opacity: 0.15; }
-        .aura-line-1 { width: 1000px; height: 15px; top: 50%; left: -200px; transform: rotate(-35deg); }
-        .aura-line-2 { width: 100%; height: 8px; top: 15%; left: 0; }
-        .aura-line
+        /* HEAVY INK LINES */
+        .aura-line { position: absolute; background: var(--black); opacity: 0.2; }
+        .aura-line-1 { width: 1200px; height: 12px; top: 45%; left: -200px; transform: rotate(-30deg); }
+        .aura-line-2 { width: 100%; height: 6px; top: 12%; left: 0; }
+        .aura-line-3 { width: 12px; height: 100%; left: 18%; top: 0; }
+
+        @keyframes aura-drift {
+            0% { transform: translate(0,0) rotate(0deg); }
+            50% { transform: translate(30px, 30px) rotate(5deg); }
+            100% { transform: translate(0,0) rotate(0deg); }
+        }
+
+        .results-wrapper { position: relative; z-index: 2; max-width: 900px; margin: 0 auto; padding: 60px 20px; }
+
+        /* CLEAN HEADER */
+        .results-header { margin-bottom: 60px; text-align: center; }
+        .header-main { display: inline-block; }
+        h1 { font-family: 'Archivo Black'; font-size: 3.5rem; margin: 0; letter-spacing: -2px; line-height: 1; }
+        h1::before { content: ''; display: inline-block; width: 15px; height: 50px; background: var(--red); margin-right: 15px; vertical-align: middle; }
+        #ticker-box { font-family: 'Archivo Black'; font-size: 1.2rem; margin-top: 20px; color: var(--black); opacity: 0.6; }
+
+        /* FEED LAYOUT */
+        #standings-feed { display: flex; flex-direction: column; gap: 50px; }
+        .year-block { position: relative; animation: slideUp 0.6s ease-out backwards; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+        .year-tag { font-family: 'Archivo Black'; color: white; display: inline-block; padding: 10px 25px; font-size: 1.3rem; margin-bottom: -5px; position: relative; z-index: 2; border: 4px solid var(--black); }
+        .content-box { background: white; border: 5px solid var(--black); box-shadow: 15px 15px 0px rgba(0,0,0,0.05); padding: 35px; }
+
+        /* LEADER STYLES */
+        .leader-row { display: flex; justify-content: space-between; align-items: center; padding-bottom: 25px; }
+        .label { font-size: 0.75rem; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; }
+        .tie-badge { background: var(--red); color: white; padding: 2px 6px; margin-left: 10px; }
+        .leader-name { font-family: 'Archivo Black'; font-size: 2.5rem; text-transform: uppercase; line-height: 1.1; margin: 10px 0; }
+        .leader-title { font-weight: 700; opacity: 0.4; text-transform: uppercase; font-size: 0.9rem; }
+        .leader-score { font-family: 'Archivo Black'; font-size: 5rem; line-height: 1; }
+
+        /* LIST STYLES */
+        .rank-list { margin-top: 25px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; border-top: 2px solid #eee; padding-top: 25px; }
+        .rank-item { display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 800; text-transform: uppercase; padding: 8px 0; border-bottom: 1px solid #f5f5f5; }
+        .no-votes-global { padding: 100px 0; text-align: center; opacity: 0.15; }
+
+        @media (max-width: 600px) {
+            .rank-list { grid-template-columns: 1fr; }
+            .leader-name { font-size: 1.6rem; }
+            .leader-score { font-size: 3rem; }
+            h1 { font-size: 2.2rem; }
+            h1::before { height: 35px; width: 10px; }
+        }
+    </style>
+</body>
+</html>
