@@ -6,10 +6,13 @@
     <title>Vote | MAZ Art Expo 2026</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+    <!-- Confetti for the win -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 <body>
+    <!-- Bauhaus Shapes -->
     <div class="shape circle"></div><div class="shape square"></div><div class="shape triangle"></div>
+    
     <img src="image1.png" class="school-logo" alt="MAZ Logo">
 
     <div class="container">
@@ -19,33 +22,33 @@
         </header>
 
         <div class="card" id="voting-card">
-            <!-- LETTER STEP 1: ENTER EMAIL/PHONE -->
+            <!-- STEP 0: IDENTITY -->
             <div id="step-id">
                 <h2>Cast Your Vote</h2>
                 <p style="font-size: 0.8rem; margin-bottom: 20px;">Enter your Email or Phone to begin.</p>
                 <input type="text" id="voter-id" placeholder="Email or Phone Number">
-                <button type="button" onclick="window.startVoting()">Start Voting</button>
+                <button type="button" onclick="window.startVoting()">Vote Now</button>
             </div>
 
-            <!-- LETTER STEP 2: SELECT CATEGORY -->
+            <!-- STEP 1: MAIN MENU -->
             <div id="step-menu" class="hidden">
-                <h2>Select Category</h2>
+                <h2>Select Level</h2>
                 <button onclick="window.showSubMenu('kindergarten')" style="margin-bottom:15px; background:var(--red);">KINDERGARTEN</button>
                 <button onclick="window.showSubMenu('primary')" style="margin-bottom:15px; background:var(--blue);">PRIMARY</button>
                 <button onclick="window.showSubMenu('secondary')" style="margin-bottom:15px; background:var(--black);">SECONDARY</button>
             </div>
 
-            <!-- LETTER STEP 3: CLICK CLASS LEVEL (YEAR GROUP) -->
+            <!-- STEP 2: YEAR SUB-MENU -->
             <div id="step-submenu" class="hidden">
                 <h2 id="submenu-title">Select Year</h2>
                 <div id="year-buttons-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;"></div>
-                <button onclick="window.showMenu()" style="background:none; color:var(--black); border:none; text-decoration:underline; font-size:0.7rem; margin-top:20px; width:100%;">Back to Categories</button>
+                <button onclick="window.showMenu()" style="background:none; color:var(--black); border:none; text-decoration:underline; font-size:0.7rem; margin-top:20px; width:100%;">Back to Levels</button>
             </div>
 
-            <!-- LETTER STEP 4: ENTER STUDENT NUMBER OR NAME -->
+            <!-- STEP 3: SEARCH -->
             <div id="step-search" class="hidden">
                 <h2 id="search-title">Search</h2>
-                <p style="font-size:0.7rem; font-weight:900; color:var(--red); margin-bottom:15px;">BOOTH NO. OR STUDENT NAME</p>
+                <p style="font-size:0.7rem; font-weight:900; color:var(--red); margin-bottom:15px;">BOOTH NO., NAME, OR TITLE</p>
                 <div style="position:relative;">
                     <input type="text" id="search-input" placeholder="Type here..." autocomplete="off">
                     <div id="search-results" class="search-suggestions hidden"></div>
@@ -53,7 +56,7 @@
                 <button onclick="window.backToSubMenu()" style="background:none; color:var(--red); border:none; text-decoration:underline; font-size:0.7rem; margin-top:20px; width:100%;">Cancel</button>
             </div>
 
-            <!-- STEP 5: CONFIRM AND SUBMIT -->
+            <!-- STEP 4: CONFIRM -->
             <div id="step-confirm" class="hidden">
                 <div id="artwork-preview"></div>
                 <button type="button" id="vote-btn" onclick="window.submitVote()">Submit Official Vote</button>
