@@ -3,48 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MAZ ART EXPO 2026 | LIVE RANKINGS</title>
+    <title>MAZ EXPO 2026 | THE LEADERS</title>
     <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Montserrat:wght@900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesque:wght@300;500;700;900&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
-<body style="background:#fff; padding:0; overflow-y: auto; cursor: none;">
+<body class="bauhaus-canvas">
 
-    <!-- BOLD COLOR AURA LAYER (Blocks the "Big Guys" concerns) -->
-    <div style="position: fixed; top:0; left:0; width:100%; height:100%; z-index: 1; pointer-events: none;">
-        <div class="vivid-shape" style="background: var(--blue); width: 600px; height: 600px; top: -200px; left: -100px; animation: drift 25s infinite linear;"></div>
-        <div class="vivid-shape" style="background: var(--yellow); width: 400px; height: 400px; bottom: 50px; right: -100px; animation: drift 20s infinite reverse ease-in-out;"></div>
-        <div class="vivid-shape" style="background: var(--red); width: 500px; height: 100px; top: 40%; left: -100px; transform: rotate(-25deg); opacity: 0.4;"></div>
+    <!-- PHYSICAL GRAIN FILTER -->
+    <div class="grain-overlay"></div>
+
+    <!-- ASYMMETRIC BACKGROUND GEOMETRY -->
+    <div class="composition-layer">
+        <div class="comp-shape comp-red-bar"></div>
+        <div class="comp-shape comp-blue-circle"></div>
+        <div class="comp-shape comp-yellow-block"></div>
+        <div class="comp-line comp-line-v"></div>
     </div>
 
-    <!-- THE LOGO ANCHOR (Blocks Gemini) -->
-    <img src="image1.png" class="school-logo" alt="Logo" style="bottom: 55px !important; right: 15px !important; z-index: 100;">
+    <!-- THE 3x3 LOGO ANCHOR (Blocks AI Watermarks) -->
+    <img src="image1.png" class="school-logo" alt="MAZ Logo" style="bottom: 55px !important; right: 15px !important; opacity: 1 !important;">
 
-    <!-- THE DOTTED GRID (Over the colors for the Arty Look) -->
-    <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-image: radial-gradient(rgba(0,0,0,0.2) 1.5px, transparent 1px); background-size: 30px 30px; z-index: 2; pointer-events: none;"></div>
-
-    <div style="min-height: 100vh; display: flex; flex-direction: column; position: relative; z-index: 5;">
-        
-        <!-- HEADER -->
-        <div style="background: var(--black); color: white; padding: 25px 50px; display: flex; justify-content: space-between; align-items: center; border-bottom: 12px solid var(--red); box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
-            <div style="font-family: 'Archivo Black'; font-size: 3.5rem; letter-spacing: -2px;">ART EXPO 2026</div>
-            <div id="ticker-total-box" style="font-family: 'Archivo Black'; font-size: 2.2rem; background: var(--yellow); color: var(--black); padding: 8px 30px; border: 4px solid white;">
-                TOTAL: <span id="master-total-ticker">0</span>
+    <div class="exhibition-wrapper">
+        <!-- HEADER: ASYMMETRIC SWISS STYLE -->
+        <header class="bauhaus-header">
+            <div class="header-content">
+                <div class="title-wrap">
+                    <span class="exhibition-label">EXHIBITION STANDINGS</span>
+                    <h1>MAZ ART EXPO 2026</h1>
+                </div>
+                <div class="total-votes-stamp">
+                    <div class="stamp-label">TOTAL VOTES TALLIED</div>
+                    <div id="master-total" class="stamp-number">0</div>
+                </div>
             </div>
-        </div>
+            <div class="interaction-hint">PRESS SPACEBAR TO NAVIGATE GALLERY</div>
+        </header>
 
-        <!-- 13-PRIZE DYNAMIC WALL -->
-        <div id="champion-wall" style="flex: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 30px; padding: 40px;">
-            <!-- Content Injected -->
-        </div>
-
-        <!-- FOOTER TICKER -->
-        <div style="background: var(--blue); color: white; height: 70px; overflow: hidden; display: flex; align-items: center; border-top: 8px solid var(--black); z-index: 10;">
-            <div class="scrolling-text" style="font-family: 'Archivo Black'; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 3px;">
-                LIVE EXHIBITION STANDINGS • JALAN KRISTAL SHAH ALAM • CAST YOUR VOTE VIA THE OFFICIAL QR CODE • SUPPORTING YOUNG ARTISTS
-            </div>
-        </div>
+        <!-- SCROLLABLE GALLERY FEED -->
+        <main id="standings-feed">
+            <!-- Year Groups with >0 votes appear here as "Exhibits" -->
+        </main>
     </div>
 
     <script src="firebase-config.js"></script>
@@ -59,67 +59,160 @@
 
         db.collection('artworks').onSnapshot(snap => {
             const data = snap.docs.map(doc => ({id:doc.id, ...doc.data()}));
-            const wall = document.getElementById('champion-wall');
-            wall.innerHTML = "";
+            const feed = document.getElementById('standings-feed');
+            feed.innerHTML = "";
             let globalTotal = 0;
+            let activeCount = 0;
 
             groups.forEach((g) => {
-                const students = data.filter(a => a.year === g.id);
-                const sorted = students.sort((a,b) => (b.voteCount || 0) - (a.voteCount || 0));
-                const topScore = sorted.length > 0 ? (sorted[0].voteCount || 0) : 0;
+                const students = data.filter(a => a.year === g.id && (a.voteCount || 0) > 0)
+                                    .sort((a,b) => (b.voteCount || 0) - (a.voteCount || 0));
+                
                 students.forEach(s => globalTotal += (s.voteCount || 0));
 
-                const leaders = sorted.filter(s => s.voteCount === topScore && topScore > 0);
+                if (students.length === 0) return;
+                activeCount++;
 
-                const card = document.createElement('div');
-                card.className = "gallery-card";
-                card.style.borderTop = `15px solid ${getCol(g.c)}`; // Thicker top border for "COLOR"
-                
-                let nameDisplay = topScore === 0 ? '<span style="opacity:0.2">---</span>' : (leaders.length === 1 ? leaders[0].artist : "JOINT LEADERS");
-                let titleDisplay = topScore === 0 ? "Awaiting Selection" : (leaders.length === 1 ? leaders[0].title : `${leaders.length} Artists Tied`);
+                const topScore = students[0].voteCount;
+                const leaders = students.filter(s => s.voteCount === topScore);
 
-                card.innerHTML = `
-                    <div style="font-family:'Archivo Black'; font-size:0.9rem; color:${getCol(g.c)}; margin-bottom:10px;">${g.l}</div>
-                    <div class="winner-name">${nameDisplay}</div>
-                    <div class="winner-title">${titleDisplay}</div>
-                    <div class="card-footer">
-                        <div class="vote-badge">${topScore}</div>
-                        <div class="booth-tag">${leaders.length === 1 ? leaders[0].id : ''}</div>
+                const section = document.createElement('section');
+                section.className = "exhibit-block";
+
+                let leaderName = leaders.length > 1 ? "JOINT LEADERS" : students[0].artist;
+                let leaderTitle = leaders.length > 1 ? `${leaders.length} ARTISTS TIED` : (students[0].title || "UNTITLED");
+
+                section.innerHTML = `
+                    <div class="exhibit-header">
+                        <div class="exhibit-id" style="background:${getCol(g.c)}">${g.l}</div>
+                        <div class="exhibit-line"></div>
+                    </div>
+                    <div class="exhibit-body">
+                        <div class="exhibit-main">
+                            <div class="leader-meta">CURRENT LEADER ${leaders.length > 1 ? '<span class="tie-tag">TIE</span>' : ''}</div>
+                            <h2 class="leader-name">${leaderName}</h2>
+                            <p class="leader-artwork-title">"${leaderTitle}"</p>
+                            ${students.length > leaders.length ? `
+                                <div class="runners-grid">
+                                    ${students.slice(leaders.length, leaders.length + 3).map((s, i) => `
+                                        <div class="runner-entry">
+                                            <span class="runner-rank">#${leaders.length + i + 1}</span>
+                                            <span class="runner-name">${s.artist}</span>
+                                            <span class="runner-score">${s.voteCount}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : ''}
+                        </div>
+                        <div class="exhibit-score" style="color:${getCol(g.c)}">${topScore}</div>
                     </div>
                 `;
-                wall.appendChild(card);
+                feed.appendChild(section);
             });
-            document.getElementById('master-total-ticker').innerText = globalTotal;
+
+            if (activeCount === 0) {
+                feed.innerHTML = `<div class="awaiting-hero">AWAITING<br>FIRST<br>BRUSHSTROKE</div>`;
+            }
+            document.getElementById('master-total').innerText = globalTotal;
         });
 
-        function getCol(cat) {
-            if(cat === 'kindergarten') return 'var(--red)';
-            if(cat === 'primary') return 'var(--blue)';
-            return 'var(--yellow)';
-        }
+        // MECHANICAL SCROLL (SPACEBAR)
+        window.addEventListener('keydown', (e) => {
+            if (e.code === "Space" || e.keyCode === 32) {
+                e.preventDefault();
+                const blocks = document.querySelectorAll('.exhibit-block');
+                const scrollPos = window.scrollY + 150;
+                for (let block of blocks) {
+                    if (block.offsetTop > scrollPos) {
+                        window.scrollTo({ top: block.offsetTop - 50, behavior: 'smooth' });
+                        break;
+                    }
+                }
+            }
+        });
+
+        function getCol(c){ return c==='kindergarten'?'var(--red)':c==='primary'?'var(--blue)':'var(--yellow)'; }
     </script>
 
     <style>
-        .vivid-shape { position: absolute; border-radius: 50%; opacity: 0.3; filter: blur(60px); z-index: 1; }
-        @keyframes drift {
-            0%, 100% { transform: translate(0,0) rotate(0deg); }
-            50% { transform: translate(50px, 50px) rotate(15deg); }
+        /* BAUHAUS DESIGN SYSTEM 2.0 */
+        .bauhaus-canvas {
+            background-color: #f2f0e9; /* Physical paper color */
+            background-image: radial-gradient(#bcbab4 1.5px, transparent 1px);
+            background-size: 40px 40px;
+            font-family: 'Space Grotesque', sans-serif;
+            margin: 0;
+            color: var(--black);
+            scroll-behavior: smooth;
         }
 
-        .gallery-card { 
-            background: white; border: 6px solid var(--black); box-shadow: 12px 12px 0px var(--black); 
-            display: flex; flex-direction: column; padding: 25px; min-height: 220px; box-sizing: border-box; 
-            animation: popIn 0.5s ease-out backwards;
+        /* GRAIN FILTER (The Pro Secret) */
+        .grain-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: url('https://www.transparenttextures.com/patterns/p6.png');
+            opacity: 0.15; pointer-events: none; z-index: 999;
         }
-        .winner-name { font-weight: 900; font-size: 1.6rem; line-height: 1; text-transform: uppercase; margin-top: 10px; color: var(--black); }
-        .winner-title { font-size: 0.8rem; opacity: 0.5; font-weight: 700; margin-top: 8px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .card-footer { display: flex; justify-content: space-between; align-items: flex-end; margin-top: auto; }
-        .vote-badge { font-family: 'Archivo Black'; font-size: 4rem; line-height: 0.8; color: var(--black); }
-        .booth-tag { font-size: 0.7rem; border: 3px solid black; padding: 4px 10px; font-weight: 900; background: var(--black); color: white; }
+
+        /* ABSTRACT COMPOSITION */
+        .composition-layer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+        .comp-shape { position: absolute; opacity: 0.8; }
+        .comp-red-bar { width: 100vw; height: 100px; background: var(--red); top: 15%; left: -20%; transform: rotate(-5deg); mix-blend-mode: multiply; }
+        .comp-blue-circle { width: 600px; height: 600px; border: 60px solid var(--blue); border-radius: 50%; top: -100px; right: -150px; opacity: 0.1; }
+        .comp-yellow-block { width: 300px; height: 300px; background: var(--yellow); bottom: 10%; left: 5%; transform: rotate(15deg); mix-blend-mode: multiply; opacity: 0.3; }
+        .comp-line-v { width: 4px; height: 100%; background: #000; left: 10%; top: 0; opacity: 0.05; }
+
+        .exhibition-wrapper { position: relative; z-index: 10; max-width: 1100px; margin: 0 auto; padding: 60px 40px; }
+
+        /* ASYMMETRIC HEADER */
+        .bauhaus-header { 
+            display: flex; flex-direction: column; align-items: flex-start; margin-bottom: 100px; border-left: 20px solid #000; padding-left: 40px;
+        }
+        .header-content { display: flex; justify-content: space-between; width: 100%; align-items: flex-start; }
+        .exhibition-label { font-family: 'Archivo Black'; font-size: 0.8rem; letter-spacing: 5px; opacity: 0.4; }
+        h1 { font-family: 'Archivo Black'; font-size: 5rem; line-height: 0.85; margin: 10px 0; letter-spacing: -4px; }
         
-        .scrolling-text { white-space: nowrap; animation: scroll-left 35s linear infinite; padding-left: 100%; }
-        @keyframes scroll-left { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
-        @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .total-votes-stamp { text-align: right; transform: rotate(3deg); }
+        .stamp-label { font-weight: 900; font-size: 0.7rem; background: #000; color: #fff; padding: 3px 10px; }
+        .stamp-number { font-family: 'Archivo Black'; font-size: 6rem; line-height: 0.8; }
+
+        .interaction-hint { font-weight: 900; font-size: 0.7rem; margin-top: 20px; letter-spacing: 3px; opacity: 0.3; }
+
+        /* EXHIBIT BLOCKS */
+        #standings-feed { display: flex; flex-direction: column; gap: 80px; }
+        .exhibit-block { position: relative; animation: slideIn 0.8s cubic-bezier(0.19, 1, 0.22, 1) backwards; }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(50px); } to { opacity: 1; transform: translateX(0); } }
+
+        .exhibit-header { display: flex; align-items: center; gap: 20px; margin-bottom: 15px; }
+        .exhibit-id { font-family: 'Archivo Black'; color: white; padding: 10px 30px; font-size: 1.5rem; border: 5px solid #000; }
+        .exhibit-line { flex: 1; height: 5px; background: #000; }
+
+        .exhibit-body { background: #fff; border: 8px solid #000; padding: 50px; display: flex; justify-content: space-between; align-items: center; box-shadow: 25px 25px 0px rgba(0,0,0,0.1); }
+        
+        .exhibit-main { flex: 1; }
+        .leader-meta { font-weight: 900; font-size: 0.8rem; letter-spacing: 2px; color: var(--blue); margin-bottom: 10px; }
+        .leader-name { font-family: 'Archivo Black'; font-size: 3.5rem; line-height: 0.9; margin: 0; letter-spacing: -2px; text-transform: uppercase; }
+        .leader-artwork-title { font-size: 1.5rem; font-weight: 500; opacity: 0.4; margin-top: 10px; font-style: italic; }
+
+        .exhibit-score { font-family: 'Archivo Black'; font-size: 8rem; line-height: 0.8; }
+
+        /* RUNNERS GRID */
+        .runners-grid { margin-top: 40px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; border-top: 4px solid #000; padding-top: 30px; }
+        .runner-entry { display: flex; flex-direction: column; }
+        .runner-rank { font-family: 'Archivo Black'; font-size: 0.8rem; color: var(--red); }
+        .runner-name { font-weight: 900; font-size: 1.1rem; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .runner-score { font-family: 'Archivo Black'; font-size: 1.5rem; opacity: 0.3; }
+
+        .tie-tag { background: var(--red); color: #fff; padding: 0 5px; font-size: 0.6rem; vertical-align: middle; }
+        .awaiting-hero { padding: 100px 0; font-family: 'Archivo Black'; font-size: 6rem; line-height: 0.8; opacity: 0.05; text-align: center; }
+
+        @media (max-width: 800px) {
+            h1 { font-size: 3rem; }
+            .leader-name { font-size: 2rem; }
+            .exhibit-score { font-size: 4rem; }
+            .runners-grid { grid-template-columns: 1fr; }
+            .exhibit-body { padding: 25px; }
+            .total-votes-stamp { display: none; }
+        }
     </style>
 </body>
 </html>
