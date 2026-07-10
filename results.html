@@ -3,43 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ART EXPO 2026 | LIVE POLLS</title>
+    <title>ART EXPO 2026 | LIVE VOTINGS</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
-<body class="pastel-bauhaus-bg">
-
-    <!-- THE WAVY AURA LAYER (Matches the Museum Image) -->
-    <div class="aura-container">
-        <div class="aura-wave wave-mint"></div>
-        <div class="aura-wave wave-peach"></div>
-        <div class="aura-wave wave-lavender"></div>
-    </div>
+<body class="gallery-theme">
 
     <!-- THE 3x3 LOGO ANCHOR -->
-    <img src="image1.png" class="school-logo" alt="Logo">
+    <img src="image1.png" class="school-logo" alt="Logo" style="opacity: 0.8;">
 
     <div class="results-wrapper">
-        <!-- HEADER SECTION -->
-        <header class="results-header">
+        <!-- GLASS HEADER -->
+        <header class="glass-header">
             <div class="header-main">
                 <h1>MAZ ART EXPO 2026</h1>
-            </div>
-            <div id="ticker-box">
-                LIVE ACTIVITY TALLIED: <span id="master-total">0</span> VOTES
+                <p id="ticker-box">LIVE ACTIVITY TALLIED: <span id="master-total">0</span> VOTES</p>
             </div>
         </header>
 
         <!-- SCROLLABLE STANDINGS FEED -->
         <main id="standings-feed">
-            <!-- Year Groups with >0 votes will appear here -->
+            <!-- Year Groups injected here -->
         </main>
 
-        <!-- FOOTER INFO -->
-        <footer style="margin-top: 50px; text-align: center; padding-bottom: 40px; position: relative; z-index: 5;">
-            <p style="font-family: 'Archivo Black'; font-size: 0.7rem; color: #000; opacity: 0.3; text-transform: uppercase; letter-spacing: 2px;">
+        <footer style="margin-top: 50px; text-align: center; padding-bottom: 40px;">
+            <p style="font-family: 'Archivo Black'; font-size: 0.7rem; color: white; opacity: 0.5; text-transform: uppercase; letter-spacing: 2px;">
                 Secure Real-Time Data Stream • On-Site Verification Active
             </p>
         </footer>
@@ -60,7 +50,7 @@
             const feed = document.getElementById('standings-feed');
             feed.innerHTML = "";
             let globalTotal = 0;
-            let activeGroupsCount = 0;
+            let activeCount = 0;
 
             groups.forEach((g) => {
                 const students = data.filter(a => a.year === g.id && (a.voteCount || 0) > 0)
@@ -69,36 +59,36 @@
                 students.forEach(s => globalTotal += (s.voteCount || 0));
 
                 if (students.length === 0) return;
+                activeCount++;
 
-                activeGroupsCount++;
                 const topScore = students[0].voteCount;
                 const leaders = students.filter(s => s.voteCount === topScore);
 
                 const section = document.createElement('section');
-                section.className = "year-block";
+                section.className = "year-block-glass";
 
                 const top = students[0];
                 const leaderHTML = `
                     <div class="leader-row">
                         <div class="leader-info">
-                            <span class="label" style="color:${getCol(g.c)}">
+                            <span class="label" style="color:var(--yellow)">
                                 ${leaders.length > 1 ? "JOINT LEADERS" : "CURRENT LEADER"}
                                 ${leaders.length > 1 ? '<span class="tie-badge">TIE</span>' : ""}
                             </span>
                             <div class="leader-name">${leaders.length > 1 ? leaders.map(l => l.artist).join(" & ") : top.artist}</div>
                             <div class="leader-title">${leaders.length === 1 ? (top.title || "Untitled") : leaders.length + " students tied for 1st"}</div>
                         </div>
-                        <div class="leader-score" style="color:${getCol(g.c)}">${topScore}</div>
+                        <div class="leader-score">${topScore}</div>
                     </div>
                 `;
 
                 const runners = students.filter(s => s.voteCount < topScore);
                 let listHTML = "";
                 if (runners.length > 0) {
-                    listHTML = `<div class="rank-list">`;
+                    listHTML = `<div class="rank-list-glass">`;
                     runners.slice(0, 5).forEach((s, i) => {
                         listHTML += `
-                            <div class="rank-item">
+                            <div class="rank-item-glass">
                                 <span>#${leaders.length + i + 1} ${s.artist}</span>
                                 <b>${s.voteCount}</b>
                             </div>
@@ -108,8 +98,8 @@
                 }
 
                 section.innerHTML = `
-                    <div class="year-tag" style="background:${getCol(g.c)}">${g.l}</div>
-                    <div class="content-box">
+                    <div class="year-tag-glass" style="border-left: 8px solid ${getCol(g.c)}">${g.l}</div>
+                    <div class="content-box-glass">
                         ${leaderHTML}
                         ${listHTML}
                     </div>
@@ -117,12 +107,8 @@
                 feed.appendChild(section);
             });
 
-            if (activeGroupsCount === 0) {
-                feed.innerHTML = `
-                    <div class="no-votes-global">
-                        <h2 style="font-family:'Archivo Black'; font-size:3rem; line-height:1;">AWAITING<br>FIRST SELECTION</h2>
-                    </div>
-                `;
+            if (activeCount === 0) {
+                feed.innerHTML = `<div class="no-votes-glass">AWAITING FIRST SELECTION</div>`;
             }
 
             document.getElementById('master-total').innerText = globalTotal;
@@ -132,82 +118,73 @@
     </script>
 
     <style>
-        /* BASE DOTTED GRID */
-        .pastel-bauhaus-bg {
-            background-color: #ffffff;
-            background-image: radial-gradient(#d1d1d1 1.5px, transparent 1px);
-            background-size: 30px 30px;
-            font-family: 'Montserrat', sans-serif;
+        /* GALLERY BACKGROUND IMAGE */
+        .gallery-theme {
+            background: #000 url('bg-gallery.jpg') no-repeat center center fixed;
+            background-size: cover;
             margin: 0;
-            overflow-x: hidden;
-        }
-
-        /* PASTEL WAVY SHAPES (Inspired by the Photo) */
-        .aura-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
-        .aura-wave { position: absolute; width: 800px; height: 800px; border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; opacity: 0.15; filter: blur(40px); animation: wave-float 25s infinite linear; }
-        
-        .wave-mint { background: #b9fbc0; top: -200px; left: -200px; }
-        .wave-peach { background: #ffccbc; bottom: -100px; right: -100px; animation-duration: 20s; animation-direction: reverse; }
-        .wave-lavender { background: #e1bee7; top: 30%; left: 50%; width: 400px; height: 400px; animation-duration: 30s; }
-
-        @keyframes wave-float {
-            0% { transform: translate(0,0) rotate(0deg) scale(1); }
-            50% { transform: translate(100px, 50px) rotate(10deg) scale(1.1); }
-            100% { transform: translate(0,0) rotate(0deg) scale(1); }
-        }
-
-        .results-wrapper { position: relative; z-index: 5; max-width: 900px; margin: 0 auto; padding: 60px 20px; }
-
-        /* CLEAN HEADER */
-        .results-header { margin-bottom: 60px; text-align: center; }
-        h1 { font-family: 'Archivo Black'; font-size: 3.5rem; margin: 0; letter-spacing: -2px; line-height: 1; color: #000; }
-        h1::before { content: ''; display: inline-block; width: 15px; height: 50px; background: var(--red); margin-right: 15px; vertical-align: middle; }
-        #ticker-box { font-family: 'Archivo Black'; font-size: 1.2rem; margin-top: 20px; color: #000; opacity: 0.4; }
-
-        /* CONTENT BLOCKS (BAUHAUS STABILITY) */
-        #standings-feed { display: flex; flex-direction: column; gap: 50px; }
-        .year-block { position: relative; animation: slideUp 0.6s ease-out backwards; }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-
-        .year-tag {
-            font-family: 'Archivo Black';
+            font-family: 'Montserrat', sans-serif;
             color: white;
-            display: inline-block;
+        }
+
+        /* DARK OVERLAY FOR READABILITY */
+        .gallery-theme::before {
+            content: '';
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.4); /* Darkens the image slightly */
+            z-index: 1;
+        }
+
+        .results-wrapper { position: relative; z-index: 2; max-width: 900px; margin: 0 auto; padding: 60px 20px; }
+
+        /* HEADER */
+        .glass-header { margin-bottom: 60px; text-align: center; }
+        h1 { font-family: 'Archivo Black'; font-size: 3.5rem; color: white; letter-spacing: -2px; margin: 0; }
+        #ticker-box { font-family: 'Archivo Black'; font-size: 1.2rem; color: var(--yellow); margin-top: 10px; }
+
+        /* GLASS CARD STYLING */
+        #standings-feed { display: flex; flex-direction: column; gap: 40px; }
+        
+        .year-block-glass { animation: slideUp 0.6s ease-out backwards; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        .year-tag-glass {
+            font-family: 'Archivo Black';
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
             padding: 10px 25px;
-            font-size: 1.3rem;
-            margin-bottom: -5px;
-            position: relative;
-            z-index: 6;
-            border: 4px solid #000;
+            display: inline-block;
+            font-size: 1.2rem;
+            margin-bottom: 5px;
         }
 
-        .content-box {
-            background: white;
-            border: 5px solid #000;
-            box-shadow: 15px 15px 0px rgba(0,0,0,0.1); /* Slightly softer shadow for pastel vibe */
-            padding: 35px;
+        .content-box-glass {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 0 20px 20px 20px;
+            padding: 30px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
         }
 
-        /* LEADER STYLES */
-        .leader-row { display: flex; justify-content: space-between; align-items: center; padding-bottom: 25px; }
-        .label { font-size: 0.75rem; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; }
-        .tie-badge { background: var(--red); color: white; padding: 2px 6px; margin-left: 10px; }
-        .leader-name { font-family: 'Archivo Black'; font-size: 2.5rem; text-transform: uppercase; line-height: 1.1; margin: 10px 0; color: #000; }
-        .leader-title { font-weight: 700; opacity: 0.4; text-transform: uppercase; font-size: 0.9rem; color: #000; }
+        .leader-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 20px; }
+        .label { font-size: 0.75rem; font-weight: 900; letter-spacing: 2px; }
+        .leader-name { font-family: 'Archivo Black'; font-size: 2.2rem; text-transform: uppercase; margin: 10px 0; line-height: 1; }
+        .leader-title { font-weight: 700; opacity: 0.6; text-transform: uppercase; font-size: 0.9rem; }
         .leader-score { font-family: 'Archivo Black'; font-size: 5rem; line-height: 1; }
 
-        /* LIST STYLES */
-        .rank-list { margin-top: 25px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; border-top: 2px solid #eee; padding-top: 25px; }
-        .rank-item { display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 800; text-transform: uppercase; padding: 8px 0; border-bottom: 1px solid #f5f5f5; color: #000; }
-        
-        .no-votes-global { padding: 100px 0; text-align: center; opacity: 0.15; color: #000; }
+        .rank-list-glass { margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .rank-item-glass { display: flex; justify-content: space-between; font-size: 0.9rem; font-weight: 700; text-transform: uppercase; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+
+        .tie-badge { background: var(--red); color: white; padding: 2px 6px; margin-left: 10px; border-radius: 4px; }
+        .no-votes-glass { padding: 100px 0; text-align: center; opacity: 0.3; font-family: 'Archivo Black'; font-size: 2.5rem; }
 
         @media (max-width: 600px) {
-            .rank-list { grid-template-columns: 1fr; }
+            .rank-list-glass { grid-template-columns: 1fr; }
+            h1 { font-size: 2.2rem; }
             .leader-name { font-size: 1.6rem; }
             .leader-score { font-size: 3rem; }
-            h1 { font-size: 2.2rem; }
-            h1::before { height: 35px; width: 10px; }
         }
     </style>
 </body>
