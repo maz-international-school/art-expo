@@ -6,6 +6,8 @@
     <title>Admin Control | Art Expo 2026</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <!-- Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -16,11 +18,13 @@
 
     <div class="container" style="max-width: 1100px; text-align: left;">
         <header style="margin-bottom: 40px;">
-            <h1>EXPO CONTROL</h1>
+            <h1 style="justify-content: flex-start;">EXPO CONTROL</h1>
             <p style="background: var(--red); color: white; display: inline-block; padding: 5px 15px;">Lead Architect Dashboard • MAZ 2026</p>
         </header>
 
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 30px;" class="admin-grid">
+            
+            <!-- COLUMN 1: SYSTEM & SECURITY -->
             <div>
                 <div class="card" style="margin-bottom: 30px; border-color: var(--black);">
                     <h2>System Status</h2>
@@ -38,26 +42,53 @@
                     <h2>Maintenance</h2>
                     <button onclick="window.clearAllDeviceLocks()" style="background:var(--yellow); color:black; margin-bottom:10px; font-size: 0.7rem;">FORCE GLOBAL CACHE WIPE</button>
                     <button onclick="window.resetExpoForLaunch()" style="background:var(--red); margin-bottom:10px; font-size: 0.7rem;">RESET ALL VOTES TO 0</button>
+                    <button onclick="window.nuclearWipe()" style="background:var(--black); border-color:var(--red); font-size: 0.6rem;">DELETE ALL ARTWORKS</button>
                 </div>
             </div>
 
-            <div class="card">
-                <h2 id="form-title">Add Artist</h2>
-                <input type="text" id="a-code" placeholder="Booth Code">
+            <!-- COLUMN 2: MANUAL EDITOR -->
+            <div class="card" style="box-shadow: 10px 10px 0px var(--red);">
+                <h2 id="form-title">Add/Edit Artist</h2>
+                <input type="text" id="a-code" placeholder="Booth Code (e.g. B101)">
                 <input type="text" id="a-artist" placeholder="Student Name">
-                <input type="text" id="a-year" placeholder="Year Group">
+                <input type="text" id="a-title" placeholder="Artwork Title">
+                <input type="text" id="a-year" placeholder="Year Group (KG1, Y7, etc)">
+                
                 <select id="a-cat">
                     <option value="kindergarten">Kindergarten</option>
                     <option value="primary">Primary</option>
                     <option value="secondary">Secondary</option>
                 </select>
-                <button onclick="window.saveArt()">Save to Cloud</button>
+                
+                <button onclick="window.saveArt()" id="save-btn">Save to Cloud</button>
+                <button onclick="window.resetForm()" id="cancel-btn" class="hidden" style="background:none; color:var(--blue); border:none; text-decoration:underline; margin-top:10px; cursor:pointer;">Cancel Edit</button>
+            </div>
+
+            <!-- COLUMN 3: BULK SYNC -->
+            <div class="card" style="border-color: var(--yellow);">
+                <h2>Bulk Sync (CSV)</h2>
+                <p style="font-size: 0.7rem; margin-bottom: 10px;">Headers: <b>Code, Name, Title, Category, Year</b></p>
+                <input type="file" id="csv-file" accept=".csv" style="padding: 10px;">
+                <button onclick="window.bulkUpload()" id="upload-btn" style="background: var(--blue);">Sync Namelist</button>
+                <div id="upload-status" style="margin-top:10px; font-weight: 900; color: var(--red); font-size: 0.7rem;"></div>
             </div>
         </div>
 
-        <div class="card" style="margin-top: 40px;">
-            <h2>Cloud Database</h2>
-            <div id="admin-results" style="max-height: 400px; overflow-y: auto;"></div>
+        <!-- DATABASE BROWSER (SEARCH + EDIT + DELETE) -->
+        <div class="card" style="margin-top: 40px; box-shadow: 15px 15px 0px var(--black); width: 100%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                <h2>Cloud Database</h2>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <div id="total-votes" style="background: var(--black); color: white; padding: 5px 15px; font-weight: 900; font-size: 0.8rem;">0 VOTES</div>
+                    <button onclick="window.exportCSV()" style="width:auto; padding:10px 15px; font-size:0.7rem; background:var(--yellow); color:black; border: 2px solid black;">Download Results (CSV)</button>
+                </div>
+            </div>
+
+            <input type="text" id="db-search" placeholder="Search by name, code, title, or year group..." style="margin-top: 20px; border-color: var(--blue);">
+
+            <div id="admin-results" style="margin-top: 20px; max-height: 600px; overflow-y: auto;">
+                <!-- Live results list with Edit/Delete buttons injected here -->
+            </div>
         </div>
     </div>
 
@@ -65,6 +96,7 @@
     <script>
         let fullLocalData = [];
 
+        // 1. SETTINGS SYNC
         window.toggleSet = async function(key, value) {
             await db.collection('settings').doc('status').set({ [key]: value }, { merge: true });
         };
@@ -73,29 +105,113 @@
             if (doc.exists) {
                 const d = doc.data();
                 document.getElementById('status-label').innerText = d.isOpen ? 'OPEN' : 'LOCKED';
+                document.getElementById('status-label').style.color = d.isOpen ? '#27ae60' : 'var(--red)';
                 document.getElementById('geo-label').innerText = d.isGeofenceEnabled ? '5KM ACTIVE' : 'OFF';
                 document.getElementById('dna-label').innerText = d.isDNALockEnabled ? 'ACTIVE' : 'OFF';
             }
         });
 
-        db.collection('artworks').onSnapshot(snap => {
-            fullLocalData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            renderList();
+        db.collection('voters').onSnapshot(snap => {
+            document.getElementById('active-voters').innerText = snap.size;
         });
 
-        function renderList() {
+        // 2. SEARCH & LIST RENDER
+        function renderList(filter = "") {
             const out = document.getElementById('admin-results');
+            if (!out) return;
             out.innerHTML = "";
-            fullLocalData.forEach(d => {
-                const div = document.createElement('div');
-                div.className = "result-row";
-                div.innerHTML = `<b>${d.id}</b> ${d.artist} (${d.voteCount || 0} votes)`;
-                out.appendChild(div);
+            const query = filter.toLowerCase().trim();
+
+            const filtered = fullLocalData.filter(d => {
+                const name = (d.artist || "").toLowerCase();
+                const code = (d.id || "").toLowerCase();
+                const year = (d.year || "").toLowerCase();
+                const title = (d.title || "").toLowerCase();
+                return name.includes(query) || code.includes(query) || year.includes(query) || title.includes(query);
+            });
+
+            filtered.forEach(d => {
+                const row = document.createElement('div');
+                row.className = "result-row";
+                row.style.cssText = "border: 4px solid black; margin-bottom: 10px; padding: 12px; display: flex; justify-content: space-between; align-items: center; background: white;";
+                row.innerHTML = `
+                    <div style="flex:1; min-width:0;">
+                        <b style="color:var(--red)">${d.id}</b> ${d.artist || 'Unknown'}
+                        <br><small style="opacity:0.6; font-size:0.7rem;">${(d.year || 'N/A').toUpperCase()} | ${(d.category || 'N/A').toUpperCase()} | "${d.title || 'Untitled'}"</small>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span style="font-weight:900; background:var(--blue); color:white; padding: 2px 8px;">${d.voteCount || 0}</span>
+                        <button onclick="window.prepareEdit('${d.id}')" style="width:auto; padding:5px 10px; font-size:0.6rem; background:var(--yellow); color:black; border:2px solid black; cursor:pointer;">EDIT</button>
+                        <button onclick="window.deleteArt('${d.id}')" style="width:auto; padding:5px 10px; font-size:0.6rem; background:var(--red); color:white; border:2px solid black; cursor:pointer;">DEL</button>
+                    </div>`;
+                out.appendChild(row);
             });
         }
 
+        // 3. LIVE DATABASE SYNC
+        db.collection('artworks').onSnapshot(snap => {
+            let total = 0;
+            fullLocalData = snap.docs.map(doc => {
+                const d = doc.data();
+                total += (d.voteCount || 0);
+                return { id: doc.id, ...d };
+            });
+            document.getElementById('total-votes').innerText = total + " VOTES";
+            renderList(document.getElementById('db-search').value);
+        });
+
+        // 4. MANUAL CRUD (CREATE, UPDATE, DELETE)
+        window.saveArt = async function() {
+            const code = document.getElementById('a-code').value.toUpperCase().trim();
+            const artist = document.getElementById('a-artist').value.trim();
+            const year = document.getElementById('a-year').value.toUpperCase().trim();
+            if (!code || !artist || !year) return alert("Code, Name, and Year required!");
+
+            await db.collection('artworks').doc(code).set({
+                artist, year, category: document.getElementById('a-cat').value,
+                title: document.getElementById('a-title').value.trim() || "Untitled",
+                voteCount: firebase.firestore.FieldValue.increment(0)
+            }, { merge: true });
+            
+            alert("Database Updated."); 
+            window.resetForm();
+        };
+
+        window.prepareEdit = function(id) {
+            const s = fullLocalData.find(x => x.id === id);
+            if (!s) return;
+            document.getElementById('a-code').value = s.id;
+            document.getElementById('a-code').disabled = true; // Lock code during edit
+            document.getElementById('a-artist').value = s.artist || "";
+            document.getElementById('a-title').value = s.title || "";
+            document.getElementById('a-year').value = s.year || "";
+            document.getElementById('a-cat').value = s.category || "primary";
+            document.getElementById('cancel-btn').classList.remove('hidden');
+            document.getElementById('form-title').innerText = "Edit Artist: " + id;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        window.resetForm = function() {
+            document.getElementById('a-code').value = "";
+            document.getElementById('a-code').disabled = false;
+            document.getElementById('a-artist').value = "";
+            document.getElementById('a-title').value = "";
+            document.getElementById('a-year').value = "";
+            document.getElementById('cancel-btn').classList.add('hidden');
+            document.getElementById('form-title').innerText = "Add Artist";
+        };
+
+        window.deleteArt = async function(id) { 
+            if(confirm("Permanently delete " + id + "? This cannot be undone.")) {
+                await db.collection('artworks').doc(id).delete(); 
+            }
+        };
+
+        // 5. BULK & MAINTENANCE
+        document.getElementById('db-search').oninput = (e) => renderList(e.target.value);
+
         window.clearAllDeviceLocks = async function() {
-            if(confirm("FORCE GLOBAL WIPE? This clears every visitor's phone storage. Use before 9 AM.")) {
+            if(confirm("FORCE GLOBAL CACHE WIPE? This clears the 'Already Voted' status on every phone browser. Required if you did a trial run.")) {
                 await db.collection('settings').doc('status').set({ 
                     lastGlobalReset: firebase.firestore.FieldValue.serverTimestamp() 
                 }, { merge: true });
@@ -104,25 +220,54 @@
         };
 
         window.resetExpoForLaunch = async function() {
-            if(confirm("WIPE ALL VOTES TO ZERO?")) {
+            if(confirm("WIPE ALL VOTE COUNTS TO ZERO? This clears all voter history. DO THIS AT 8:55 AM.")) {
                 const b = db.batch();
                 fullLocalData.forEach(s => b.update(db.collection('artworks').doc(s.id), { voteCount: 0 }));
                 const vots = await db.collection('voters').get(); vots.forEach(v => b.delete(v.ref));
-                await b.commit(); alert("Clean Slate Ready!");
+                await b.commit(); 
+                alert("Clean Slate Ready!");
             }
         };
 
-        window.saveArt = async function() {
-            const code = document.getElementById('a-code').value.toUpperCase().trim();
-            const artist = document.getElementById('a-artist').value.trim();
-            if(!code || !artist) return alert("Required fields missing");
-            await db.collection('artworks').doc(code).set({
-                artist, 
-                year: document.getElementById('a-year').value.toUpperCase(),
-                category: document.getElementById('a-cat').value,
-                voteCount: 0
-            }, {merge: true});
-            alert("Saved.");
+        window.nuclearWipe = async function() {
+            if(prompt("Type DELETE to wipe every student record from the database") === "DELETE") {
+                const snap = await db.collection('artworks').get();
+                const b = db.batch(); snap.docs.forEach(doc => b.delete(doc.ref)); await b.commit();
+                location.reload();
+            }
+        };
+
+        window.bulkUpload = async function() {
+            const file = document.getElementById('csv-file').files[0];
+            const status = document.getElementById('upload-status');
+            if(!file) return alert("Select CSV!");
+            status.innerText = "UPLOADING...";
+            
+            Papa.parse(file, {header:true, skipEmptyLines:true, complete: async (res) => {
+                let count = 0;
+                for(let item of res.data) {
+                    const clean = {}; Object.keys(item).forEach(k => clean[k.trim().toLowerCase()] = item[k]);
+                    if(clean.code) {
+                        await db.collection('artworks').doc(clean.code.trim().toUpperCase()).set({
+                            artist: (clean.name || "Unknown").trim(),
+                            title: (clean.title || "").trim(),
+                            category: (clean.category || "primary").toLowerCase().trim(),
+                            year: (clean.year || "Y1").toUpperCase().trim(),
+                            voteCount: parseInt(clean.votes) || 0
+                        }, { merge: true });
+                        count++;
+                        status.innerText = `Sync: ${count}`;
+                    }
+                }
+                alert("CSV Fully Synced!");
+                status.innerText = "";
+            }});
+        };
+
+        window.exportCSV = function() {
+            let csv = "Code,Name,Title,Category,Year,Votes\n";
+            fullLocalData.forEach(d => { csv += `${d.id},"${d.artist}","${d.title}",${d.category},${d.year},${d.voteCount || 0}\n`; });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download = 'expo_final_results.csv'; a.click();
         };
     </script>
 </body>
