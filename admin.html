@@ -3,61 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control Center | Art Expo 2026</title>
+    <title>Control Center | MAZ Art Expo 2026</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
     
-    <!-- Scripts -->
+    <!-- External Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
 <body style="display: block; padding: 50px 20px; overflow-x: hidden;">
 
+    <!-- 3x3 Grid Logo Anchor -->
     <img src="image1.png" class="school-logo" alt="Logo">
 
     <div class="container" style="max-width: 1000px; text-align: left;">
         <header style="margin-bottom: 40px;">
             <h1 style="justify-content: flex-start;">EXPO CONTROL</h1>
-            <p style="background: var(--red); color: white;">Mission Control • MAZ Art Expo 2026</p>
+            <p style="background: var(--red); color: white; display: inline-block; padding: 5px 15px;">Mission Control • MAZ Art Expo 2026</p>
         </header>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;" class="admin-grid">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px;" class="admin-grid">
             
             <!-- COLUMN 1: SYSTEM & SECURITY -->
             <div>
+                <!-- STATUS CONTROLS -->
                 <div class="card" style="margin-bottom: 30px; border-color: var(--black);">
                     <h2>System Status</h2>
                     <p>Voting: <b id="status-label">LOADING</b> | GPS: <b id="geo-label">LOADING</b></p>
                     <p>Live Voters: <b id="active-voters">0</b></p>
-                    <div style="display:flex; gap:10px; margin-top:10px;">
-                        <button onclick="toggleSet('isOpen',true)" style="background:#27ae60; font-size:0.7rem;">UNLOCK</button>
-                        <button onclick="toggleSet('isOpen',false)" style="background:var(--black); font-size:0.7rem;">LOCK</button>
+                    <div style="display: flex; gap: 10px; margin-top: 15px;">
+                        <button onclick="toggleSet('isOpen', true)" style="background: #27ae60; flex: 1; font-size: 0.8rem;">UNLOCK</button>
+                        <button onclick="toggleSet('isOpen', false)" style="background: var(--black); flex: 1; font-size: 0.8rem;">LOCK</button>
                     </div>
-                    <div style="display:flex; gap:10px; margin-top:10px;">
-                        <button onclick="toggleSet('isGeofenceEnabled',true)" style="background:var(--blue); font-size:0.7rem;">GPS ON</button>
-                        <button onclick="toggleSet('isGeofenceEnabled',false)" style="background:var(--black); font-size:0.7rem;">GPS OFF</button>
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <button onclick="toggleSet('isGeofenceEnabled', true)" style="background: var(--blue); flex: 1; font-size: 0.8rem;">GPS ON</button>
+                        <button onclick="toggleSet('isGeofenceEnabled', false)" style="background: var(--black); flex: 1; font-size: 0.8rem;">GPS OFF</button>
                     </div>
                 </div>
 
-                <div class="card" style="background:#fff0f0;">
-                    <h2>Maintenance</h2>
-                    <button onclick="nuclearWipe()" style="background:var(--black); border-color:var(--red); margin-bottom:10px; font-size:0.7rem;">DELETE ALL DATA</button>
-                    <button onclick="resetExpoForLaunch()" style="background:var(--red); font-size:0.7rem;">RESET VOTES TO 0</button>
+                <!-- MAINTENANCE -->
+                <div class="card" style="background:#fff0f0; margin-bottom: 30px;">
+                    <h2>Nuclear Tools</h2>
+                    <button onclick="nuclearWipe()" id="nuclear-btn" style="background: var(--black); border-color: var(--red); margin-bottom: 10px; font-size: 0.7rem;">DELETE ALL ARTWORKS</button>
+                    <button onclick="resetExpoForLaunch()" style="background: var(--red); font-size: 0.7rem;">RESET VOTES TO 0</button>
                 </div>
 
+                <!-- BULK UPLOAD -->
                 <div class="card" style="box-shadow: 10px 10px 0px var(--yellow);">
-                    <h2>Bulk Sync</h2>
-                    <input type="file" id="csv-file" accept=".csv">
+                    <h2>Bulk Sync (CSV)</h2>
+                    <input type="file" id="csv-file" accept=".csv" style="padding: 10px;">
                     <button onclick="bulkUpload()" id="upload-btn" style="background: var(--blue);">Sync Namelist</button>
-                    <div id="upload-status" style="margin-top:10px; font-weight:900; font-size:0.7rem; color:var(--red);"></div>
+                    <div id="upload-status" style="margin-top:10px; font-weight: 900; color: var(--red); font-size: 0.7rem;"></div>
                 </div>
             </div>
 
             <!-- COLUMN 2: MANUAL EDITOR -->
             <div class="card" style="box-shadow: 10px 10px 0px var(--red);">
                 <h2 id="form-title">Add/Edit Artist</h2>
-                <input type="text" id="a-code" placeholder="Booth Code (B101)">
+                <input type="text" id="a-code" placeholder="Booth Code (e.g. B101)">
                 <input type="text" id="a-artist" placeholder="Student Name">
                 <input type="text" id="a-title" placeholder="Art Title">
                 <input type="text" id="a-year" placeholder="Year Group (KG1, Y7, etc)">
@@ -69,50 +73,46 @@
                 </select>
                 
                 <button onclick="saveArt()" id="save-btn">Save to Cloud</button>
-                <button onclick="resetForm()" id="cancel-btn" class="hidden" style="background:none; color:var(--blue); border:none; text-decoration:underline; cursor:pointer; margin-top:10px;">Cancel Edit</button>
+                <button onclick="resetForm()" id="cancel-btn" class="hidden" style="background:none; color:var(--blue); border:none; text-decoration:underline; margin-top:10px; cursor:pointer;">Cancel Edit</button>
             </div>
         </div>
 
-        <!-- DATABASE VIEWER -->
+        <!-- LIVE DATABASE -->
         <div class="card" style="margin-top: 40px; box-shadow: 15px 15px 0px var(--black); width: 100%;">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
                 <h2>Live Database</h2>
-                <div style="display:flex; gap:10px; align-items:center;">
+                <div style="display: flex; gap: 10px; align-items: center;">
                     <div id="total-votes" style="background: var(--black); color: white; padding: 5px 15px; font-weight: 900; font-size: 0.8rem;">TOTAL VOTES: 0</div>
                     <button onclick="exportCSV()" style="width:auto; padding:10px 15px; font-size:0.7rem; background:var(--yellow); color:black; border:2px solid black;">Export CSV</button>
                 </div>
             </div>
 
-            <!-- THE SEARCH BAR (THE FIX) -->
-            <input type="text" id="db-search" placeholder="Search by Name, Code, Year, or Title..." style="margin-top: 20px; border-color: var(--blue);">
+            <input type="text" id="db-search" placeholder="Quick find by name, code, or year group..." style="margin-top: 20px; border-color: var(--blue);">
 
-            <div id="admin-results" style="margin-top: 10px; max-height: 600px; overflow-y: auto; border-top: 2px solid #eee;">
+            <div id="admin-results" style="margin-top: 10px; max-height: 600px; overflow-y: auto;">
                 <!-- Records injected here -->
             </div>
         </div>
     </div>
 
+    <!-- Firebase Config -->
     <script src="firebase-config.js"></script>
 
     <script>
-        // 1. SECURITY & ACCESS
-        const ADMIN_PASSKEY = "maz_admin_2026";
-        document.body.style.display = "none"; 
-        const entry = prompt("ADMIN ACCESS REQUIRED:");
-        if (entry !== ADMIN_PASSKEY) { window.location.href = "index.html"; } else { document.body.style.display = "block"; }
-
         let fullLocalData = [];
 
-        // 2. REMOTE TOGGLES
-        async function toggleSet(k,v){ await db.collection('settings').doc('status').set({[k]:v}, {merge:true}); }
-        
-        db.collection('settings').doc('status').onSnapshot(d => {
-            if(d.exists){
-                const data = d.data();
-                document.getElementById('status-label').innerText = data.isOpen ? 'OPEN' : 'LOCKED';
-                document.getElementById('status-label').style.color = data.isOpen ? '#27ae60' : 'var(--red)';
-                document.getElementById('geo-label').innerText = data.isGeofenceEnabled ? '5KM ACTIVE' : 'OFF';
-                document.getElementById('geo-label').style.color = data.isGeofenceEnabled ? 'var(--red)' : 'var(--blue)';
+        // 1. SETTINGS CONTROL
+        async function toggleSet(key, value) {
+            await db.collection('settings').doc('status').set({ [key]: value }, { merge: true });
+        }
+
+        db.collection('settings').doc('status').onSnapshot(doc => {
+            if (doc.exists) {
+                const d = doc.data();
+                document.getElementById('status-label').innerText = d.isOpen ? 'OPEN' : 'LOCKED';
+                document.getElementById('status-label').style.color = d.isOpen ? '#27ae60' : 'var(--red)';
+                document.getElementById('geo-label').innerText = d.isGeofenceEnabled ? 'ACTIVE (5KM)' : 'OFF';
+                document.getElementById('geo-label').style.color = d.isGeofenceEnabled ? 'var(--red)' : 'var(--blue)';
             }
         });
 
@@ -120,38 +120,117 @@
             document.getElementById('active-voters').innerText = snap.size;
         });
 
-        // 3. DATABASE SEARCH & RENDER (REBUILT FOR STABILITY)
+        // 2. DATA SAVE / UPDATE
+        async function saveArt() {
+            const code = document.getElementById('a-code').value.toUpperCase().trim();
+            const artist = document.getElementById('a-artist').value.trim();
+            const title = document.getElementById('a-title').value.trim();
+            const year = document.getElementById('a-year').value.toUpperCase().trim();
+            const cat = document.getElementById('a-cat').value;
+
+            if (!code || !artist || !year) return alert("Code, Name, and Year Group are required!");
+
+            try {
+                await db.collection('artworks').doc(code).set({
+                    artist: artist,
+                    title: title || "Untitled",
+                    year: year,
+                    category: cat
+                }, { merge: true });
+                alert("Database Updated!");
+                resetForm();
+            } catch (e) { alert("Error: " + e.message); }
+        }
+
+        function resetForm() {
+            document.getElementById('a-code').value = "";
+            document.getElementById('a-code').disabled = false;
+            document.getElementById('a-artist').value = "";
+            document.getElementById('a-title').value = "";
+            document.getElementById('a-year').value = "";
+            document.getElementById('form-title').innerText = "Add/Edit Artist";
+            document.getElementById('cancel-btn').classList.add('hidden');
+        }
+
+        // 3. EDIT / DELETE
+        function prepareEdit(id) {
+            const s = fullLocalData.find(d => d.id === id);
+            if (!s) return;
+
+            document.getElementById('a-code').value = s.id;
+            document.getElementById('a-code').disabled = true;
+            document.getElementById('a-artist').value = s.artist;
+            document.getElementById('a-title').value = s.title || "";
+            document.getElementById('a-year').value = s.year || "";
+            document.getElementById('a-cat').value = s.category;
+
+            document.getElementById('form-title').innerText = "Editing: " + s.id;
+            document.getElementById('cancel-btn').classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        async function deleteArt(id) {
+            if (confirm("Delete " + id + "? Votes will be lost.")) {
+                await db.collection('artworks').doc(id).delete();
+            }
+        }
+
+        // 4. BULK UPLOAD
+        async function bulkUpload() {
+            const file = document.getElementById('csv-file').files[0];
+            const status = document.getElementById('upload-status');
+            if (!file) return alert("Select a CSV!");
+
+            status.innerText = "PROCESSING...";
+            
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: async (results) => {
+                    let count = 0;
+                    for (let item of results.data) {
+                        const clean = {};
+                        Object.keys(item).forEach(k => clean[k.trim().toLowerCase()] = item[k]);
+
+                        if (clean.code) {
+                            await db.collection('artworks').doc(clean.code.trim().toUpperCase()).set({
+                                artist: (clean.name || "Unknown").trim(),
+                                title: (clean.title || "").trim(),
+                                category: (clean.category || "primary").toLowerCase().trim(),
+                                year: (clean.year || "Y1").toUpperCase().trim(),
+                                voteCount: parseInt(clean.votes) || 0
+                            }, { merge: true });
+                            count++;
+                            status.innerText = `SYNCING: ${count}`;
+                        }
+                    }
+                    alert("Sync Complete!");
+                    status.innerText = "";
+                }
+            });
+        }
+
+        // 5. SEARCH & LISTENER
         function renderList(filter = "") {
             const out = document.getElementById('admin-results');
             if (!out) return;
             out.innerHTML = "";
+            const query = filter.toLowerCase();
 
-            const query = filter.toLowerCase().trim();
-
-            // Perform the filter
-            const filtered = fullLocalData.filter(d => {
-                const nameMatch = (d.artist || "").toLowerCase().includes(query);
-                const codeMatch = (d.id || "").toLowerCase().includes(query);
-                const yearMatch = (d.year || "").toLowerCase().includes(query);
-                const titleMatch = (d.title || "").toLowerCase().includes(query);
-                return nameMatch || codeMatch || yearMatch || titleMatch;
-            });
-
-            if (filtered.length === 0) {
-                out.innerHTML = `<p style="padding:20px; opacity:0.5;">No matches found for "${filter}"</p>`;
-                return;
-            }
-
-            filtered.forEach(d => {
+            fullLocalData.filter(d => 
+                d.id.toLowerCase().includes(query) || 
+                d.artist.toLowerCase().includes(query) ||
+                (d.year && d.year.toLowerCase().includes(query))
+            ).forEach(d => {
                 const row = document.createElement('div');
                 row.className = "result-row";
                 row.innerHTML = `
-                    <div style="flex:1; min-width:0;">
+                    <div style="flex:1;">
                         <b style="color:var(--red)">${d.id}</b> ${d.artist}
-                        <br><small style="opacity:0.6; font-size:0.7rem;">${d.year || 'NO YEAR'} | ${d.category?.toUpperCase()} | "${d.title || 'No Title'}"</small>
+                        <br><small style="opacity:0.6;">${d.year || 'NO YEAR'} | ${d.category.toUpperCase()}</small>
                     </div>
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <span style="background:var(--blue); color:white; padding:2px 8px; font-weight:900;">${d.voteCount || 0}</span>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span style="font-weight:900;">${d.voteCount || 0}</span>
                         <button onclick="prepareEdit('${d.id}')" style="width:auto; padding:5px 10px; font-size:0.6rem; background:var(--yellow); color:black; border:2px solid black;">EDIT</button>
                         <button onclick="deleteArt('${d.id}')" style="width:auto; padding:5px 10px; font-size:0.6rem; background:var(--red); color:white; border:2px solid black;">DEL</button>
                     </div>`;
@@ -159,88 +238,22 @@
             });
         }
 
-        // 4. REAL-TIME SYNC
+        document.getElementById('db-search').oninput = (e) => renderList(e.target.value);
+
         db.collection('artworks').onSnapshot(snap => {
             let total = 0;
             fullLocalData = snap.docs.map(doc => {
-                const data = doc.data();
-                total += (data.voteCount || 0);
-                return { id: doc.id, ...data };
+                const d = doc.data();
+                total += (d.voteCount || 0);
+                return { id: doc.id, ...d };
             });
             document.getElementById('total-votes').innerText = "TOTAL VOTES: " + total;
             renderList(document.getElementById('db-search').value);
         });
 
-        // 5. BULK UPLOAD
-        async function bulkUpload() {
-            const file = document.getElementById('csv-file').files[0];
-            const status = document.getElementById('upload-status');
-            if(!file) return alert("Select CSV!");
-            status.innerText = "PROCESSING...";
-            
-            Papa.parse(file, {header:true, skipEmptyLines:true, complete: async (res) => {
-                let count = 0;
-                for(let item of res.data) {
-                    const clean = {}; Object.keys(item).forEach(k => clean[k.trim().toLowerCase()] = item[k]);
-                    if(clean.code) {
-                        await db.collection('artworks').doc(clean.code.trim().toUpperCase()).set({
-                            artist: (clean.name || "Unknown").trim(),
-                            title: (clean.title || "").trim(),
-                            category: (clean.category || "primary").toLowerCase().trim(),
-                            year: (clean.year || "Y1").toUpperCase().trim(),
-                            voteCount: parseInt(clean.votes) || 0
-                        }, { merge: true });
-                        count++;
-                        status.innerText = `Syncing: ${count}`;
-                    }
-                }
-                alert("Database Refreshed!");
-                status.innerText = "";
-            }});
-        }
-
-        // 6. CRUD UTILS
-        async function saveArt() {
-            const code = document.getElementById('a-code').value.toUpperCase().trim();
-            const artist = document.getElementById('a-artist').value.trim();
-            const year = document.getElementById('a-year').value.toUpperCase().trim();
-            if(!code || !artist || !year) return alert("Code, Name, and Year required!");
-
-            await db.collection('artworks').doc(code).set({
-                artist: artist,
-                title: document.getElementById('a-title').value.trim() || "Untitled",
-                year: year,
-                category: document.getElementById('a-cat').value
-            }, { merge: true });
-            alert("Record Updated.");
-            resetForm();
-        }
-
-        function prepareEdit(id) {
-            const s = fullLocalData.find(x => x.id === id);
-            if(!s) return;
-            document.getElementById('a-code').value = s.id;
-            document.getElementById('a-code').disabled = true;
-            document.getElementById('a-artist').value = s.artist;
-            document.getElementById('a-title').value = s.title || "";
-            document.getElementById('a-year').value = s.year || "";
-            document.getElementById('a-cat').value = s.category;
-            document.getElementById('form-title').innerText = "Editing: " + s.id;
-            document.getElementById('cancel-btn').classList.remove('hidden');
-            window.scrollTo({top: 0, behavior: 'smooth'});
-        }
-
-        function resetForm() {
-            document.getElementById('a-code').value = ""; document.getElementById('a-code').disabled = false;
-            document.getElementById('a-artist').value = ""; document.getElementById('a-title').value = "";
-            document.getElementById('a-year').value = ""; document.getElementById('form-title').innerText = "Add/Edit Artist";
-            document.getElementById('cancel-btn').classList.add('hidden');
-        }
-
-        async function deleteArt(id) { if(confirm("Delete " + id + "?")) await db.collection('artworks').doc(id).delete(); }
-
+        // 6. MAINTENANCE
         async function nuclearWipe() {
-            if(prompt("Type DELETE to wipe all students") === "DELETE") {
+            if (prompt("Type 'DELETE' to wipe all students") === "DELETE") {
                 const snap = await db.collection('artworks').get();
                 const b = db.batch(); snap.docs.forEach(doc => b.delete(doc.ref)); await b.commit();
                 location.reload();
@@ -248,29 +261,30 @@
         }
 
         async function resetExpoForLaunch() {
-            if(confirm("Reset all votes to 0?")) {
-                const b = db.batch(); fullLocalData.forEach(s => b.update(db.collection('artworks').doc(s.id), {voteCount:0}));
+            if (confirm("Reset all vote counts to zero?")) {
+                const b = db.batch(); 
+                fullLocalData.forEach(s => b.update(db.collection('artworks').doc(s.id), { voteCount: 0 }));
                 const v = await db.collection('voters').get(); v.forEach(doc => b.delete(doc.ref));
-                await b.commit(); alert("Ready for Official Start!");
+                await b.commit(); alert("Votes Reset!");
             }
         }
 
         function exportCSV() {
             let csv = "Code,Name,Title,Category,Year,Votes\n";
-            fullLocalData.forEach(d => { csv += `${d.id},"${d.artist}","${d.title}",${d.category},${d.year},${d.voteCount||0}\n`; });
-            const b = new Blob([csv], {type:'text/csv'});
-            const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'expo_final_results.csv'; a.click();
+            fullLocalData.forEach(d => {
+                csv += `${d.id},"${d.artist}","${d.title}",${d.category},${d.year},${d.voteCount||0}\n`;
+            });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+            a.download = 'maz_expo_results.csv'; a.click();
         }
-
-        // Attach listener to search bar
-        document.getElementById('db-search').oninput = (e) => renderList(e.target.value);
     </script>
 
     <style>
         @media (max-width: 600px) { .admin-grid { grid-template-columns: 1fr !important; } }
-        .result-row { border: 4px solid var(--black); margin-bottom: 10px; padding: 12px; display: flex; justify-content: space-between; align-items: center; background: white; }
-        .result-row button { border: 2px solid black; font-weight: 900; transition: 0.1s; width: auto; }
-        .result-row button:active { transform: scale(0.9); }
+        .result-row { border: 4px solid black; margin-bottom: 10px; padding: 12px; display: flex; justify-content: space-between; align-items: center; background: white; }
+        .result-row button { border: 2px solid black; font-weight: 900; }
+        small { font-family: Montserrat; text-transform: none; font-weight: 400; }
     </style>
 </body>
 </html>
