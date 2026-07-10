@@ -3,15 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MAZ Art Expo 2026 | Voting </title>
+    <title>Vote | MAZ Art Expo 2026</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 <body>
-    <!-- Bauhaus Shapes -->
     <div class="shape circle"></div><div class="shape square"></div><div class="shape triangle"></div>
-    
     <img src="image1.png" class="school-logo" alt="MAZ Logo">
 
     <div class="container">
@@ -21,51 +19,36 @@
         </header>
 
         <div class="card" id="voting-card">
-            <!-- STEP 1: MAIN MENU (The new Start Page) -->
-            <div id="step-menu">
-                <h2>Select a Level</h2>
-                <p style="font-size: 0.7rem; margin-bottom: 20px; font-weight: 700; opacity: 0.6;">YOU MAY VOTE ONCE PER YEAR GROUP</p>
-                
+            <div id="step-id">
+                <h2>Welcome</h2>
+                <p style="font-size: 0.8rem; margin-bottom: 20px;">Identity verified automatically. You can vote once per Year Group.</p>
+                <button type="button" onclick="window.startVoting()">Enter Expo</button>
+            </div>
+            <div id="step-menu" class="hidden">
+                <h2>Select Level</h2>
                 <button onclick="window.showSubMenu('kindergarten')" style="margin-bottom:15px; background:var(--red);">KINDERGARTEN</button>
                 <button onclick="window.showSubMenu('primary')" style="margin-bottom:15px; background:var(--blue);">PRIMARY</button>
                 <button onclick="window.showSubMenu('secondary')" style="margin-bottom:15px; background:var(--black);">SECONDARY</button>
             </div>
-
-            <!-- STEP 2: YEAR SUB-MENU -->
             <div id="step-submenu" class="hidden">
                 <h2 id="submenu-title">Select Year</h2>
                 <div id="year-buttons-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;"></div>
                 <button onclick="window.showMenu()" style="background:none; color:var(--black); border:none; text-decoration:underline; font-size:0.7rem; margin-top:20px; width:100%;">Back to Levels</button>
             </div>
-
-            <!-- STEP 3: SEARCH -->
             <div id="step-search" class="hidden">
                 <h2 id="search-title">Search</h2>
-                <p style="font-size:0.7rem; font-weight:900; color:var(--red); margin-bottom:15px;">BOOTH NO., NAME, OR TITLE</p>
+                <p style="font-size:0.7rem; font-weight:900; color:var(--red); margin-bottom:15px;">BOOTH NO. OR STUDENT NAME</p>
                 <div style="position:relative;">
                     <input type="text" id="search-input" placeholder="Type here..." autocomplete="off">
                     <div id="search-results" class="search-suggestions hidden"></div>
                 </div>
                 <button onclick="window.backToSubMenu()" style="background:none; color:var(--red); border:none; text-decoration:underline; font-size:0.7rem; margin-top:20px; width:100%;">Cancel</button>
             </div>
-
-            <!-- STEP 4: CONFIRM -->
             <div id="step-confirm" class="hidden">
                 <div id="artwork-preview"></div>
                 <button type="button" id="vote-btn" onclick="window.submitVote()">Submit Official Vote</button>
                 <button onclick="window.cancelToSearch()" style="background:none; color:var(--blue); border:none; text-decoration:underline; font-size:0.7rem; margin-top:15px; width:100%;">Go Back</button>
             </div>
-        </div>
-
-        <!-- SUCCESS MESSAGE -->
-        <div id="success-message" class="card hidden">
-            <h2 style="color: var(--red)">VOTE RECORDED!</h2>
-            <div style="padding: 20px; border: 4px solid var(--black); margin-bottom: 20px;">
-                <p style="margin:0; font-size: 0.7rem; font-weight: 900; color: var(--red);">OFFICIAL SELECTION:</p>
-                <p id="success-artist" style="font-size: 1.5rem; font-weight: 900; margin: 5px 0; text-transform: uppercase;"></p>
-                <p style="margin:0; font-size: 0.8rem; font-weight: 700;">Year Group: <span id="success-year" style="color:var(--blue)"></span></p>
-            </div>
-            <button type="button" onclick="window.showMenu()">Vote in another Year</button>
         </div>
     </div>
 
