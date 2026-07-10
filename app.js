@@ -4,7 +4,7 @@ let allArtworks = [];
 let currentCategory = ""; 
 let currentYear = "";     
 
-const CAMPUSES = [{ lat: 3.0681, lon: 101.4895 }, { lat: 0, lon: 0 }];
+const CAMPUSES = [{ lat: 3.0681, lon: 101.4895 }
 const RADIUS_KM = 5.0; 
 
 const YEAR_MAP = {
