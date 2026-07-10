@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MAZ ART EXPO 2026 | LIVE STANDINGS</title>
+    <title>MAZ ART EXPO 2026 | THE LEADERS</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesque:wght@700;900&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -11,48 +11,49 @@
 </head>
 <body class="action-canvas">
 
-    <!-- THE CHAOS ENGINE: SVG Filter for "Real Paint" look -->
+    <!-- THE GOOEY ENGINE: Makes splotches look like liquid paint -->
     <svg style="position: absolute; width: 0; height: 0;">
         <filter id="goo">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur" />
-            <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7" result="goo" />
+            <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="blur" />
+            <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 19 -9" result="goo" />
         </filter>
     </svg>
 
-    <!-- ABSTRACT BACKGROUND CHAOS (Action Painter Style) -->
+    <!-- ABSTRACT CHAOS LAYER -->
     <div class="chaos-container">
-        <div class="paint-giant splotch-red"></div>
-        <div class="paint-giant splotch-blue"></div>
-        <div class="paint-giant splotch-yellow"></div>
+        <div class="paint-blob blob-red"></div>
+        <div class="paint-blob blob-blue"></div>
+        <div class="paint-blob blob-yellow"></div>
+        <div class="ink-splat splat-1"></div>
+        <div class="ink-splat splat-2"></div>
         <div class="ink-drip drip-1"></div>
-        <div class="ink-splat" style="top:20%; left:30%;"></div>
-        <div class="ink-splat" style="bottom:15%; right:25%;"></div>
+        <div class="ink-drip drip-2"></div>
     </div>
 
-    <!-- THE 3x3 LOGO ANCHOR (Blocks Gemini) -->
-    <img src="image1.png" class="school-logo" alt="MAZ Logo" style="bottom: 55px !important; right: 15px !important; z-index: 1000; opacity: 1 !important;">
+    <!-- LOGO ANCHOR (Blocks Gemini) -->
+    <img src="image1.png" class="school-logo" alt="Logo" style="bottom: 55px !important; right: 15px !important; z-index: 1000; opacity: 1 !important;">
 
     <div class="exhibition-flow">
-        <!-- HEADER -->
+        <!-- HEADER: BRUTALIST BAUHAUS -->
         <header class="bauhaus-hero">
             <div class="title-block">
-                <div class="vertical-bar"></div>
+                <div class="accent-bar"></div>
                 <h1>MAZ ART EXPO 2026</h1>
             </div>
-            <div class="stat-block">
-                <div class="stat-label">TOTAL VOTES TALLIED</div>
-                <div id="master-total-ticker" class="stat-num">0</div>
+            <div class="stat-stamp">
+                <div class="stamp-label">TOTAL VOTES TALLIED</div>
+                <div id="master-total-ticker" class="stamp-num">0</div>
             </div>
         </header>
 
         <!-- THE FEED -->
         <main id="standings-feed">
-            <!-- Dynamic Exhibit Cards -->
+            <!-- Year Groups with >0 votes appear here -->
         </main>
 
         <div class="nav-footer">
             <div class="scrolling-ticker">
-                START VOTING • MAY THE BEST ARTWORK WIN • ONLY ON-SITE VOTES VERIFIED BY GEOFENCE • REAL-TIME DATA STREAM ACTIVE • 
+                SYSTEM ONLINE • LIVE COMPETITION FEED • VERIFIED ON-SITE DATA • JALAN KRISTAL SHAH ALAM • MAY THE BEST ARTWORK WIN • 
             </div>
         </div>
     </div>
@@ -72,7 +73,7 @@
             const feed = document.getElementById('standings-feed');
             feed.innerHTML = "";
             let globalTotal = 0;
-            let activeCount = 0;
+            let activeYears = 0;
 
             groups.forEach((g) => {
                 const students = data.filter(a => a.year === g.id && (a.voteCount || 0) > 0)
@@ -80,68 +81,77 @@
                 
                 students.forEach(s => globalTotal += (s.voteCount || 0));
                 if (students.length === 0) return;
-                activeCount++;
+                activeYears++;
 
                 const topScore = students[0].voteCount;
                 const leaders = students.filter(s => s.voteCount === topScore);
+                const runners = students.filter(s => s.voteCount < topScore && s.voteCount > 0);
 
                 const section = document.createElement('div');
                 section.className = "exhibit-card";
                 
-                // Randomized rotation for "hand-pasted" effect
-                const rot = (Math.random() * 1.4 - 0.7).toFixed(1);
+                // RANDOM ROTATION FOR ARTISTIC CHAOS
+                const rot = (Math.random() * 2.4 - 1.2).toFixed(1);
                 section.style.transform = `rotate(${rot}deg)`;
 
-                // --- TIE-BREAKER LOGIC (How we tackle the scenario) ---
+                // Tie-Breaker Logic for 13 Groups
                 let nameHTML = "";
                 let titleHTML = "";
-                let badgeHTML = "";
+                let statusTag = "";
 
                 if (leaders.length === 1) {
-                    // Single Leader: Show everything big
                     nameHTML = leaders[0].artist;
                     titleHTML = `"${leaders[0].title || 'Untitled'}"`;
-                    badgeHTML = '<div class="status-tag">LEADER</div>';
+                    statusTag = '<div class="card-status">LEADER</div>';
                 } else if (leaders.length <= 2) {
-                    // 2-Way Tie: Show both names small
                     nameHTML = leaders.map(l => l.artist).join(" & ");
                     titleHTML = "JOINT LEADERS";
-                    badgeHTML = '<div class="status-tag tie">2-WAY TIE</div>';
+                    statusTag = '<div class="card-status tie">TIE</div>';
                 } else {
-                    // Mass Tie (>2 people): Hide names to prevent wall-of-text
                     nameHTML = `${leaders.length}-WAY TIE`;
-                    titleHTML = "VOTE TO BREAK THE DEADLOCK";
-                    badgeHTML = '<div class="status-tag tie pulse">MASS TIE</div>';
+                    titleHTML = "CAST A VOTE TO BREAK THE LOCK";
+                    statusTag = '<div class="card-status tie pulse">MASS TIE</div>';
                 }
 
                 section.innerHTML = `
                     <div class="exhibit-header" style="background:${getCol(g.c)}">
                         <span>${g.l}</span>
-                        ${badgeHTML}
+                        ${statusTag}
                     </div>
                     <div class="exhibit-main">
-                        <div class="winner-info">
+                        <div class="artist-block">
                             <h2 class="winner-name">${nameHTML}</h2>
                             <p class="winner-title">${titleHTML}</p>
                         </div>
                         <div class="winner-score" style="color:${getCol(g.c)}">${topScore}</div>
                     </div>
+                    ${runners.length > 0 ? `
+                        <div class="runners-tray">
+                            ${runners.slice(0, 3).map((s, i) => `
+                                <div class="runner-row">
+                                    <span class="r-rank">#${leaders.length + i + 1}</span>
+                                    <span class="r-name">${s.artist}</span>
+                                    <span class="r-v">${s.voteCount}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
                 `;
                 feed.appendChild(section);
             });
 
-            if (activeCount === 0) {
-                feed.innerHTML = `<div class="awaiting-canvas">AWAITING<br>FIRST<br>VOTE</div>`;
+            if (activeYears === 0) {
+                feed.innerHTML = `<div class="awaiting">AWAITING THE FIRST STROKE</div>`;
             }
             document.getElementById('master-total-ticker').innerText = globalTotal;
         });
 
-        // SPACEBAR NAV
+        // SPACEBAR TO JUMP
         window.addEventListener('keydown', (e) => {
-            if (e.code === "Space") {
+            if (e.code === "Space" || e.keyCode === 32) {
                 e.preventDefault();
                 const cards = document.querySelectorAll('.exhibit-card');
-                const scrollPos = window.scrollY + 250;
+                const scrollPos = window.scrollY + 200;
                 for (let card of cards) {
                     if (card.offsetTop > scrollPos) {
                         window.scrollTo({ top: card.offsetTop - 50, behavior: 'smooth' });
@@ -156,55 +166,74 @@
 
     <style>
         .action-canvas {
-            background: #ffffff;
+            background: #fff;
             background-image: linear-gradient(var(--black) 1px, transparent 1px), linear-gradient(90deg, var(--black) 1px, transparent 1px);
-            background-size: 40px 40px;
+            background-size: 50px 50px;
             font-family: 'Space Grotesque', sans-serif;
             margin: 0;
             overflow-x: hidden;
             scroll-behavior: smooth;
         }
 
-        /* ABSTRACT CHAOS */
+        /* LIQUID PAINT EFFECTS */
         .chaos-container { position: fixed; top:0; left:0; width:100%; height:100%; z-index: 1; pointer-events: none; filter: url('#goo'); }
-        .paint-giant { position: absolute; border-radius: 50%; opacity: 0.25; animation: flow 20s infinite alternate ease-in-out; }
-        .splotch-red { width: 600px; height: 600px; background: var(--red); top: -100px; left: -100px; }
-        .splotch-blue { width: 500px; height: 500px; background: var(--blue); bottom: -50px; right: -50px; }
-        .splotch-yellow { width: 400px; height: 400px; background: var(--yellow); top: 30%; right: 20%; }
-        .ink-splat { position: absolute; width: 15px; height: 15px; background: #000; border-radius: 50%; opacity: 0.1; box-shadow: 20px 15px 0 #000, -30px 40px 0 #000, 60px 60px 0 #000; }
-        .ink-drip { position: absolute; width: 6px; height: 400px; background: #000; opacity: 0.05; top: -400px; left: 25%; animation: drip 12s infinite linear; }
-        @keyframes flow { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(40px, 60px) scale(1.1); } }
-        @keyframes drip { 0% { transform: translateY(0); } 100% { transform: translateY(150vh); } }
+        .paint-blob { position: absolute; border-radius: 50%; opacity: 0.35; animation: flow 25s infinite alternate ease-in-out; }
+        .blob-red { width: 600px; height: 600px; background: var(--red); top: -150px; left: -150px; }
+        .blob-blue { width: 500px; height: 500px; background: var(--blue); bottom: -100px; right: -100px; animation-delay: -5s; }
+        .blob-yellow { width: 400px; height: 400px; background: var(--yellow); top: 35%; right: 15%; animation-delay: -10s; }
 
-        /* HEADER */
+        .ink-splat { position: absolute; width: 25px; height: 25px; background: #000; border-radius: 50%; opacity: 0.12; box-shadow: 30px 20px 0 #000, -40px 60px 0 #000, 80px 80px 0 #000; }
+        .ink-drip { position: absolute; width: 8px; height: 500px; background: #000; opacity: 0.08; top: -500px; animation: drip 15s infinite linear; }
+        .drip-1 { left: 10%; } .drip-2 { right: 40%; animation-delay: 8s; }
+
+        @keyframes flow { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(60px, 100px) scale(1.15); } }
+        @keyframes drip { 0% { transform: translateY(0); } 100% { transform: translateY(180vh); } }
+
+        /* CONTENT */
         .exhibition-flow { position: relative; z-index: 5; max-width: 1200px; margin: 0 auto; }
-        .bauhaus-hero { padding: 60px 50px; display: flex; justify-content: space-between; align-items: flex-end; }
-        .title-block { border-left: 20px solid #000; padding-left: 30px; }
-        .vertical-bar { height: 40px; width: 10px; background: var(--red); margin-bottom: 10px; }
-        h1 { font-family: 'Archivo Black'; font-size: 5rem; line-height: 0.8; margin: 0; letter-spacing: -4px; }
-        .stat-block { border: 8px solid #000; background: var(--yellow); padding: 10px 30px; box-shadow: 12px 12px 0 #000; }
-        .stat-label { font-weight: 900; font-size: 0.7rem; letter-spacing: 2px; }
-        .stat-num { font-family: 'Archivo Black'; font-size: 4rem; line-height: 1; }
+        .bauhaus-hero { padding: 100px 50px; display: flex; justify-content: space-between; align-items: flex-end; }
+        .title-block { border-left: 30px solid #000; padding-left: 40px; }
+        .accent-bar { height: 80px; width: 15px; background: var(--red); margin-bottom: 25px; }
+        h1 { font-family: 'Archivo Black'; font-size: 6rem; line-height: 0.8; margin: 0; letter-spacing: -6px; }
 
-        /* EXHIBIT CARDS */
-        #standings-feed { padding: 50px; display: flex; flex-direction: column; gap: 80px; padding-bottom: 200px; }
-        .exhibit-card { background: white; border: 8px solid #000; box-shadow: 20px 20px 0 #000; position: relative; overflow: hidden; }
-        .exhibit-header { font-family: 'Archivo Black'; font-size: 1.2rem; color: #fff; padding: 12px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 8px solid #000; }
-        .status-tag { background: #000; color: #fff; padding: 4px 12px; font-size: 0.7rem; letter-spacing: 2px; font-weight: 900; }
-        .status-tag.tie { background: var(--red); }
+        .stat-stamp { border: 10px solid #000; background: var(--yellow); padding: 15px 40px; transform: rotate(4deg); box-shadow: 20px 20px 0 #000; }
+        .stamp-label { font-weight: 900; font-size: 0.8rem; letter-spacing: 3px; }
+        .stamp-num { font-family: 'Archivo Black'; font-size: 5rem; line-height: 1; }
 
-        .exhibit-main { padding: 50px; display: flex; justify-content: space-between; align-items: center; }
-        .winner-name { font-family: 'Archivo Black'; font-size: 3.5rem; line-height: 0.9; letter-spacing: -2px; margin: 0; text-transform: uppercase; }
-        .winner-title { font-size: 1.4rem; font-weight: 700; opacity: 0.3; margin-top: 10px; text-transform: uppercase; }
-        .winner-score { font-family: 'Archivo Black'; font-size: 9rem; line-height: 0.8; letter-spacing: -5px; }
+        #standings-feed { padding: 50px; display: flex; flex-direction: column; gap: 150px; padding-bottom: 300px; }
+        .exhibit-card { background: white; border: 12px solid #000; box-shadow: 40px 40px 0px #000; position: relative; }
+        
+        .exhibit-header { font-family: 'Archivo Black'; font-size: 2rem; color: #fff; padding: 15px 40px; display: flex; justify-content: space-between; align-items: center; border-bottom: 12px solid #000; }
+        .card-status { background: #000; color: #fff; padding: 4px 15px; font-size: 0.9rem; letter-spacing: 3px; }
+        .card-status.tie { background: var(--red); }
 
-        .nav-footer { background: var(--blue); color: #fff; position: fixed; bottom: 0; width: 100%; height: 50px; display: flex; align-items: center; border-top: 6px solid #000; z-index: 1000; }
-        .scrolling-ticker { font-family: 'Archivo Black'; font-size: 1.2rem; white-space: nowrap; animation: ticker 45s linear infinite; }
+        .exhibit-main { padding: 80px; display: flex; justify-content: space-between; align-items: center; }
+        .winner-name { font-family: 'Archivo Black'; font-size: 5rem; line-height: 0.85; letter-spacing: -4px; margin: 0; text-transform: uppercase; }
+        .winner-title { font-size: 2rem; font-weight: 700; opacity: 0.3; margin-top: 20px; text-transform: uppercase; }
+        .winner-score { font-family: 'Archivo Black'; font-size: 11rem; line-height: 0.7; letter-spacing: -8px; }
+
+        .runners-tray { background: #000; color: #fff; padding: 30px 80px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 60px; }
+        .runner-row { display: flex; justify-content: space-between; align-items: center; }
+        .r-name { font-weight: 900; text-transform: uppercase; font-size: 1.2rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 15px;}
+        .r-rank { font-family: 'Archivo Black'; color: var(--red); font-size: 0.9rem; }
+        .r-v { font-family: 'Archivo Black'; opacity: 0.6; }
+
+        .nav-footer { background: var(--blue); color: #fff; position: fixed; bottom: 0; width: 100%; height: 65px; display: flex; align-items: center; border-top: 10px solid #000; z-index: 1000; }
+        .scrolling-ticker { font-family: 'Archivo Black'; font-size: 1.8rem; white-space: nowrap; animation: ticker 35s linear infinite; }
         @keyframes ticker { from { transform: translateX(100%); } to { transform: translateX(-100%); } }
-        .pulse { animation: pulse 1s infinite alternate; }
-        @keyframes pulse { from { opacity: 0.6; } to { opacity: 1; } }
 
-        .awaiting-canvas { padding: 150px 0; text-align: center; font-family: 'Archivo Black'; font-size: 6rem; opacity: 0.05; }
+        .awaiting { padding: 200px 0; text-align: center; font-family: 'Archivo Black'; font-size: 9rem; line-height: 0.8; opacity: 0.04; letter-spacing: -10px; }
+        .pulse { animation: pulse 0.8s infinite alternate; }
+        @keyframes pulse { from { opacity: 0.5; } to { opacity: 1; } }
+
+        @media (max-width: 800px) {
+            h1 { font-size: 3.5rem; }
+            .winner-name { font-size: 2.5rem; }
+            .winner-score { font-size: 6rem; }
+            .exhibit-main { flex-direction: column; text-align: center; gap: 40px; padding: 40px; }
+            .runners-tray { grid-template-columns: 1fr; padding: 30px; }
+            .stat-stamp { display: none; }
+        }
     </style>
 </body>
 </html>
