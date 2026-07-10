@@ -9,53 +9,52 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 <body>
-    <div class="shape circle"></div><div class="shape square"></div><div class="shape triangle"></div>
+    <div class="shape circle"></div>
     <img src="image1.png" class="school-logo" alt="MAZ Logo">
 
     <div class="container">
         <header>
             <h1>ART EXPO 2026</h1>
-            <p id="voter-display" class="hidden" style="font-weight: 900; color: var(--red); margin-top: 10px; font-size: 0.7rem; text-transform: uppercase;"></p>
+            <p id="voter-display" class="hidden"></p>
         </header>
 
         <div class="card" id="voting-card">
             <div id="step-id">
                 <h2>Cast Your Vote</h2>
                 <input type="text" id="voter-id" placeholder="Email or Phone Number">
-                <button type="button" onclick="startVoting()">Vote Now</button>
+                <button type="button" onclick="window.startVoting()">Enter Expo</button>
             </div>
+
             <div id="step-menu" class="hidden">
-                <h2>Select Category</h2>
-                <button onclick="showSubMenu('kindergarten')" id="btn-kindergarten" style="margin-bottom:15px; background:var(--red);">KINDERGARTEN</button>
-                <button onclick="showSubMenu('primary')" id="btn-primary" style="margin-bottom:15px; background:var(--blue);">PRIMARY</button>
-                <button onclick="showSubMenu('secondary')" id="btn-secondary" style="margin-bottom:15px; background:var(--black);">SECONDARY</button>
+                <h2>Select Level</h2>
+                <button onclick="window.showSubMenu('kindergarten')">KINDERGARTEN</button>
+                <button onclick="window.showSubMenu('primary')">PRIMARY</button>
+                <button onclick="window.showSubMenu('secondary')">SECONDARY</button>
             </div>
+
             <div id="step-submenu" class="hidden">
-                <h2 id="submenu-title">Select Year</h2>
-                <div id="year-buttons-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;"></div>
-                <button onclick="showMenu()" style="background:none; color:var(--black); border:none; text-decoration:underline; font-size:0.7rem; margin-top:20px; width:100%;">Back to Categories</button>
+                <h2 id="submenu-title"></h2>
+                <div id="year-buttons-container"></div>
+                <button onclick="window.showMenu()">Back</button>
             </div>
+
             <div id="step-search" class="hidden">
                 <h2 id="search-title">Search</h2>
-                <div style="position:relative;">
-                    <input type="text" id="search-input" placeholder="Type here..." autocomplete="off">
-                    <div id="search-results" class="search-suggestions hidden"></div>
-                </div>
-                <button onclick="backToSubMenu()" style="background:none; color:var(--red); border:none; text-decoration:underline; font-size:0.7rem; margin-top:20px; width:100%;">Cancel</button>
+                <input type="text" id="search-input" placeholder="Type here...">
+                <div id="search-results" class="search-suggestions hidden"></div>
             </div>
+
             <div id="step-confirm" class="hidden">
                 <div id="artwork-preview"></div>
-                <button type="button" id="vote-btn" onclick="submitVote()">Submit Official Vote</button>
-                <button onclick="cancelToSearch()" style="background:none; color:var(--blue); border:none; text-decoration:underline; font-size:0.7rem; margin-top:15px; width:100%;">Go Back</button>
+                <button type="button" id="vote-btn" onclick="window.submitVote()">Submit Official Vote</button>
             </div>
         </div>
+
         <div id="success-message" class="card hidden">
-            <h2 style="color: var(--red)">VOTE RECORDED!</h2>
-            <div style="padding: 20px; border: 4px solid var(--black); margin-bottom: 20px; background:#f9f9f9;">
-                <p id="success-artist" style="font-size: 1.5rem; font-weight: 900; margin: 8px 0; text-transform: uppercase; line-height:1.1;"></p>
-                <p style="margin:0; font-size: 0.8rem; font-weight: 700;">Group: <span id="success-year" style="color:var(--blue)"></span></p>
-            </div>
-            <button type="button" onclick="showSubMenu(currentCategory)">Vote in another Year</button>
+            <h2>VOTE RECORDED!</h2>
+            <p id="success-artist"></p>
+            <p id="success-year"></p>
+            <button type="button" onclick="window.showMenu()">Vote in another Year</button>
         </div>
     </div>
 
