@@ -3,41 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Standings | Art Expo 2026</title>
+    <title>MAZ ART EXPO | LIVE BROADCAST</title>
     <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Montserrat:wght@900&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
-<body class="dotted-bg">
+<body style="background:var(--white); padding:0; overflow:hidden; cursor:none;">
 
     <!-- THE 3x3 LOGO ANCHOR -->
     <img src="image1.png" class="school-logo" alt="Logo">
 
-    <div class="results-wrapper">
-        <!-- HEADER SECTION -->
-        <header class="results-header">
-            <div class="header-main">
-                <div class="blue-block"></div>
-                <h1>MAZ ART EXPO 2026</h1>
-                <div class="tilted-line"></div>
+    <div style="height: 100vh; display: flex; flex-direction: column; position: relative; z-index: 2;">
+        
+        <!-- HEADER -->
+        <div style="background: var(--black); color: white; padding: 20px 50px; display: flex; justify-content: space-between; align-items: center; border-bottom: 10px solid var(--red);">
+            <div style="font-family: 'Archivo Black'; font-size: 3.5rem; letter-spacing: -2px;">MAZ ART EXPO 2026</div>
+            <div style="display:flex; align-items:center; gap:20px;">
+                <div style="font-size:0.7rem; color:var(--white); opacity:0.3; font-family:Montserrat;">SPACE TO JUMP</div>
+                <div id="ticker-total-box" style="font-family: 'Archivo Black'; font-size: 2.2rem; background: var(--yellow); color: var(--black); padding: 5px 25px; border: 4px solid white;">
+                    TOTAL: <span id="master-total-ticker">0</span>
+                </div>
             </div>
-            <div id="ticker-box">
-                LIVE ACTIVITY TALLIED: <span id="master-total">0</span> VOTES
+        </div>
+
+        <!-- BROADCAST STAGE (2 Columns) -->
+        <div id="broadcast-stage" style="flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; padding: 40px; background: transparent;">
+            <!-- Content Injected via JS -->
+        </div>
+
+        <!-- FOOTER TICKER -->
+        <div style="background: var(--blue); color: white; height: 70px; overflow: hidden; display: flex; align-items: center; border-top: 8px solid var(--black);">
+            <div class="scrolling-text" style="font-family: 'Archivo Black'; font-size: 1.8rem; text-transform: uppercase; letter-spacing: 3px;">
+                START VOTING • MAY THE BEST ARTWORK WIN • WAIT FOR YOUR YEAR TO POP UP! • CAST YOUR VOTE VIA THE OFFICIAL QR CODE • ON-SITE VERIFICATION ACTIVE • 
             </div>
-        </header>
-
-        <!-- SCROLLABLE STANDINGS FEED -->
-        <main id="standings-feed">
-            <!-- Year Groups injected here -->
-        </main>
-
-        <!-- FOOTER INFO -->
-        <footer style="margin-top: 50px; text-align: center; padding-bottom: 40px;">
-            <p style="font-family: 'Archivo Black'; font-size: 0.7rem; opacity: 0.3; text-transform: uppercase; letter-spacing: 2px;">
-                Secure Real-Time Data Stream • On-Site Verification Active
-            </p>
-        </footer>
+        </div>
     </div>
 
     <script src="firebase-config.js"></script>
@@ -50,163 +50,141 @@
             {id:'Y10', c:'secondary', l:'YEAR 10'}, {id:'Y11', c:'secondary', l:'YEAR 11'}
         ];
 
+        let currentPairIndex = 0;
+        let allData = [];
+        let autoCycle;
+
         db.collection('artworks').onSnapshot(snap => {
-            const data = snap.docs.map(doc => ({id:doc.id, ...doc.data()}));
-            const feed = document.getElementById('standings-feed');
-            feed.innerHTML = "";
-            let globalTotal = 0;
-
-            groups.forEach((g) => {
-                const students = data.filter(a => a.year === g.id).sort((a,b) => (b.voteCount || 0) - (a.voteCount || 0));
-                
-                // Track total votes
-                students.forEach(s => globalTotal += (s.voteCount || 0));
-
-                const hasVotes = students.length > 0 && students[0].voteCount > 0;
-                const topScore = hasVotes ? students[0].voteCount : 0;
-                const leaders = students.filter(s => s.voteCount === topScore && topScore > 0);
-
-                const section = document.createElement('section');
-                section.className = "year-block";
-
-                let leaderHTML = "";
-                let tieLabel = leaders.length > 1 ? `<span class="tie-badge">TIE</span>` : "";
-
-                if (!hasVotes) {
-                    leaderHTML = `<div class="no-votes">AWAITING SELECTION...</div>`;
-                } else {
-                    const top = students[0];
-                    leaderHTML = `
-                        <div class="leader-row">
-                            <div class="leader-info">
-                                <span class="label" style="color:${getCol(g.c)}">CURRENT LEADER ${tieLabel}</span>
-                                <div class="leader-name">${leaders.length > 1 ? "JOINT LEADERS" : top.artist}</div>
-                                <div class="leader-title">${leaders.length > 1 ? leaders.length + " students tied" : (top.title || "Untitled")}</div>
-                            </div>
-                            <div class="leader-score" style="color:${getCol(g.c)}">${topScore}</div>
-                        </div>
-                    `;
-                }
-
-                // Top 5 Runners Up
-                let listHTML = "";
-                if (students.length > leaders.length && hasVotes) {
-                    listHTML = `<div class="rank-list">`;
-                    students.slice(leaders.length, leaders.length + 4).forEach((s, i) => {
-                        listHTML += `
-                            <div class="rank-item">
-                                <span>#${leaders.length + i + 1} ${s.artist}</span>
-                                <b>${s.voteCount}</b>
-                            </div>
-                        `;
-                    });
-                    listHTML += `</div>`;
-                }
-
-                section.innerHTML = `
-                    <div class="year-tag" style="background:${getCol(g.c)}">${g.l}</div>
-                    <div class="content-box">
-                        ${leaderHTML}
-                        ${listHTML}
-                    </div>
-                `;
-                feed.appendChild(section);
-            });
-            document.getElementById('master-total').innerText = globalTotal;
+            allData = snap.docs.map(doc => ({id:doc.id, ...doc.data()}));
+            let total = 0;
+            allData.forEach(d => total += (d.voteCount || 0));
+            document.getElementById('master-total-ticker').innerText = total;
+            renderStage();
         });
 
-        function getCol(c){ return c==='kindergarten'?'var(--red)':c==='primary'?'var(--blue)':'var(--yellow)'; }
+        function nextSlide() {
+            currentPairIndex += 2;
+            if (currentPairIndex >= groups.length) currentPairIndex = 0;
+            renderStage();
+            resetTimer();
+        }
+
+        function resetTimer() {
+            clearInterval(autoCycle);
+            autoCycle = setInterval(nextSlide, 10000); 
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === "Space" || e.keyCode === 32) {
+                e.preventDefault();
+                nextSlide();
+            }
+        });
+
+        resetTimer();
+
+        function renderStage() {
+            const stage = document.getElementById('broadcast-stage');
+            stage.innerHTML = "";
+            const pair = [groups[currentPairIndex], groups[currentPairIndex + 1]].filter(Boolean);
+
+            pair.forEach(g => {
+                // HARD FILTER: Only students with votes > 0
+                const studentsWithVotes = allData.filter(a => a.year === g.id && (a.voteCount || 0) > 0)
+                                                 .sort((a,b) => b.voteCount - a.voteCount);
+
+                const col = document.createElement('div');
+                col.className = "stage-column-new fade-in";
+                
+                let inner = `<div class="stage-header-new" style="background:${getCol(g.c)}; color:${g.c==='secondary'?'black':'white'}">${g.l}</div>`;
+
+                if (studentsWithVotes.length === 0) {
+                    inner += `
+                        <div style="margin:auto; opacity:0.1; text-align:center; transform:rotate(-5deg);">
+                            <h2 style="font-family:'Archivo Black'; font-size:4rem;">AWAITING<br>VOTES</h2>
+                        </div>`;
+                } else {
+                    const topScore = studentsWithVotes[0].voteCount;
+                    const leaders = studentsWithVotes.filter(s => s.voteCount === topScore);
+                    
+                    // 1. HERO BOX (Rank #1 or Tie)
+                    inner += `
+                        <div class="hero-box" style="border-left: 15px solid ${getCol(g.c)}">
+                            <div class="hero-label">${leaders.length > 1 ? 'JOINT LEADERS' : 'CURRENT LEADER'}</div>
+                            <div class="hero-main-row">
+                                <div class="hero-info">
+                                    <div class="hero-name">${leaders.length > 2 ? 'MULTIPLE' : leaders.map(l => l.artist).join(" & ")}</div>
+                                    <div class="hero-title">${leaders.length === 1 ? (leaders[0].title || 'Untitled') : leaders.length + ' Artists Tied'}</div>
+                                </div>
+                                <div class="hero-votes-box">
+                                    <span class="v-num">${topScore}</span>
+                                    <span class="v-label">VOTES</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    // 2. RUNNERS UP (Only show if they exist and have > 0 votes)
+                    const runners = studentsWithVotes.filter(s => s.voteCount < topScore);
+                    
+                    if (runners.length > 0) {
+                        inner += `<div class="runners-list">`;
+                        runners.slice(0, 3).forEach((s, i) => {
+                            inner += `
+                                <div class="runner-item">
+                                    <span>#${i+2} ${s.artist}</span>
+                                    <span style="color:${getCol(g.c)}">${s.voteCount}</span>
+                                </div>
+                            `;
+                        });
+                        inner += `</div>`;
+                    }
+
+                    // 3. HONORABLE MENTIONS (Small scrolling list at bottom if needed)
+                    if (runners.length > 3) {
+                        const others = runners.slice(3, 10).map(s => s.artist).join(" • ");
+                        inner += `<div class="mentions">ALSO VOTED: ${others}</div>`;
+                    }
+                }
+                col.innerHTML = inner;
+                stage.appendChild(col);
+            });
+        }
+
+        function getCol(c) {
+            if(c === 'kindergarten') return 'var(--red)';
+            if(c === 'primary') return 'var(--blue)';
+            return 'var(--yellow)';
+        }
     </script>
 
     <style>
-        /* DOTTED BACKGROUND */
-        .dotted-bg {
-            background-color: #ffffff;
-            background-image: radial-gradient(#d1d1d1 1.5px, transparent 1px);
-            background-size: 30px 30px;
-            font-family: 'Montserrat', sans-serif;
-            margin: 0;
-            overflow-x: hidden;
-        }
-
-        .results-wrapper {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 60px 20px;
-        }
-
-        /* HEADER */
-        .results-header { margin-bottom: 60px; }
-        .header-main { position: relative; display: inline-block; }
+        .stage-column-new { display: flex; flex-direction: column; background: white; border: 8px solid var(--black); box-shadow: 20px 20px 0px var(--black); overflow: hidden; }
+        .stage-header-new { font-family: 'Archivo Black'; font-size: 2.8rem; text-align: center; padding: 15px; border-bottom: 8px solid var(--black); }
         
-        .blue-block { 
-            position: absolute; left: -50px; top: -10px;
-            width: 80px; height: 80px; 
-            background: #5AC8FA; border-radius: 22px; z-index: -1; 
-        }
-
-        h1 { font-family: 'Archivo Black'; font-size: 3.5rem; margin: 0; letter-spacing: -2px; line-height: 1; }
-
-        .tilted-line { 
-            width: 200px; height: 6px; background: #000; 
-            transform: rotate(1.5deg); margin-top: 5px; 
-        }
-
-        #ticker-box { font-family: 'Archivo Black'; font-size: 1.2rem; margin-top: 25px; color: var(--black); opacity: 0.6; }
-
-        /* FEED LAYOUT */
-        #standings-feed { display: flex; flex-direction: column; gap: 50px; }
+        .hero-box { padding: 30px; flex: 1; display: flex; flex-direction: column; justify-content: center; background: #fafafa; min-width: 0; }
+        .hero-label { font-family: 'Archivo Black'; font-size: 0.9rem; letter-spacing: 3px; margin-bottom: 10px; opacity: 0.3; }
         
-        .year-block { position: relative; animation: slideUp 0.6s ease-out backwards; }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-
-        .year-tag {
-            font-family: 'Archivo Black';
-            color: white;
-            display: inline-block;
-            padding: 10px 25px;
-            font-size: 1.3rem;
-            margin-bottom: -5px;
-            position: relative;
-            z-index: 2;
-            border: 4px solid var(--black);
-        }
-
-        .content-box {
-            background: white;
-            border: 5px solid var(--black);
-            box-shadow: 15px 15px 0px rgba(0,0,0,0.05);
-            padding: 35px;
-        }
-
-        /* LEADER STYLES */
-        .leader-row { display: flex; justify-content: space-between; align-items: center; padding-bottom: 25px; }
-        .label { font-size: 0.75rem; font-weight: 900; letter-spacing: 2px; }
-        .tie-badge { background: var(--red); color: white; padding: 2px 6px; margin-left: 10px; }
-        .leader-name { font-family: 'Archivo Black'; font-size: 2.5rem; text-transform: uppercase; line-height: 1.1; margin: 10px 0; }
-        .leader-title { font-weight: 700; opacity: 0.4; text-transform: uppercase; font-size: 0.95rem; }
-        .leader-score { font-family: 'Archivo Black'; font-size: 5rem; line-height: 1; }
-
-        /* LIST STYLES */
-        .rank-list { 
-            margin-top: 25px; 
-            display: grid; 
-            grid-template-columns: 1fr 1fr; 
-            gap: 20px; 
-            border-top: 2px solid #eee;
-            padding-top: 25px;
-        }
-        .rank-item { display: flex; justify-content: space-between; font-size: 0.9rem; font-weight: 800; text-transform: uppercase; padding: 8px 0; border-bottom: 1px solid #f5f5f5; }
+        .hero-main-row { display: flex; justify-content: space-between; align-items: center; gap: 20px; width: 100%; }
+        .hero-info { flex: 1; min-width: 0; }
+        .hero-name { font-family: 'Archivo Black'; font-size: 3.5rem; line-height: 1; text-transform: uppercase; word-wrap: break-word; }
+        .hero-title { font-weight: 700; font-size: 1.5rem; opacity: 0.4; text-transform: uppercase; margin-top: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         
-        .no-votes { padding: 50px 0; text-align: center; font-family: 'Archivo Black'; opacity: 0.1; font-size: 2.5rem; transform: rotate(-2deg); }
+        .hero-votes-box { display: flex; align-items: baseline; gap: 10px; flex-shrink: 0; }
+        .v-num { font-family: 'Archivo Black'; font-size: 7rem; line-height: 0.8; }
+        .v-label { font-family: 'Archivo Black'; font-size: 1rem; }
 
-        @media (max-width: 600px) {
-            .rank-list { grid-template-columns: 1fr; }
-            .leader-name { font-size: 1.8rem; }
-            .leader-score { font-size: 3rem; }
-            h1 { font-size: 2.2rem; }
-            .blue-block { left: -20px; width: 60px; height: 60px; }
-        }
+        .runners-list { background: white; border-top: 6px solid var(--black); padding: 15px 30px; display: flex; flex-direction: column; gap: 8px; }
+        .runner-item { display: flex; justify-content: space-between; font-weight: 900; text-transform: uppercase; font-size: 1.2rem; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        .runner-item span:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 15px; }
+
+        .mentions { padding: 10px 30px; font-weight: 900; font-size: 0.7rem; text-transform: uppercase; opacity: 0.4; border-top: 1px solid #eee; }
+
+        .fade-in { animation: slam 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes slam { from { transform: scale(1.1); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        .scrolling-text { white-space: nowrap; animation: scroll-left 25s linear infinite; }
+        @keyframes scroll-left { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
     </style>
 </body>
 </html>
