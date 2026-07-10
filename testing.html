@@ -3,57 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MAZ ART EXPO 2026 | THE LEADERS</title>
+    <title>MAZ ART EXPO | LIVE BROADCAST</title>
     <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesque:wght@700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Montserrat:wght@900&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
-<body class="action-canvas">
+<body class="watercolor-canvas">
 
-    <!-- THE GOOEY ENGINE: Makes splotches look like liquid paint -->
-    <svg style="position: absolute; width: 0; height: 0;">
-        <filter id="goo">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="blur" />
-            <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 19 -9" result="goo" />
-        </filter>
-    </svg>
+    <!-- THE LOGO ANCHOR (Higher to block Gemini) -->
+    <img src="image1.png" class="school-logo" alt="Logo" style="bottom: 55px !important; right: 20px !important; z-index: 1000; opacity: 1 !important;">
 
-    <!-- ABSTRACT CHAOS LAYER -->
-    <div class="chaos-container">
-        <div class="paint-blob blob-red"></div>
-        <div class="paint-blob blob-blue"></div>
-        <div class="paint-blob blob-yellow"></div>
-        <div class="ink-splat splat-1"></div>
-        <div class="ink-splat splat-2"></div>
-        <div class="ink-drip drip-1"></div>
-        <div class="ink-drip drip-2"></div>
-    </div>
+    <!-- THE DRAFTING GRID OVERLAY (Makes it look like an official blueprint over art) -->
+    <div class="blueprint-grid"></div>
 
-    <!-- LOGO ANCHOR (Blocks Gemini) -->
-    <img src="image1.png" class="school-logo" alt="Logo" style="bottom: 55px !important; right: 15px !important; z-index: 1000; opacity: 1 !important;">
-
-    <div class="exhibition-flow">
-        <!-- HEADER: BRUTALIST BAUHAUS -->
-        <header class="bauhaus-hero">
-            <div class="title-block">
-                <div class="accent-bar"></div>
-                <h1>MAZ ART EXPO 2026</h1>
+    <div style="height: 100vh; display: flex; flex-direction: column; position: relative; z-index: 10;">
+        
+        <!-- HEADER -->
+        <div style="background: var(--black); color: white; padding: 25px 50px; display: flex; justify-content: space-between; align-items: center; border-bottom: 12px solid var(--red); box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+            <div style="font-family: 'Archivo Black'; font-size: 3.5rem; letter-spacing: -2px;">MAZ ART EXPO 2026</div>
+            <div style="display:flex; align-items:center; gap:25px;">
+                <div style="font-size:0.8rem; color:var(--white); opacity:0.5; font-family:Montserrat; font-weight:900; letter-spacing:2px;">SPACE TO SKIP</div>
+                <div style="font-family: 'Archivo Black'; font-size: 2.2rem; background: var(--yellow); color: var(--black); padding: 8px 30px; border: 4px solid white;">
+                    TOTAL: <span id="master-total-ticker">0</span>
+                </div>
             </div>
-            <div class="stat-stamp">
-                <div class="stamp-label">TOTAL VOTES TALLIED</div>
-                <div id="master-total-ticker" class="stamp-num">0</div>
-            </div>
-        </header>
+        </div>
 
-        <!-- THE FEED -->
-        <main id="standings-feed">
-            <!-- Year Groups with >0 votes appear here -->
-        </main>
+        <!-- BROADCAST STAGE (2 Columns) -->
+        <div id="broadcast-stage" style="flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 60px; padding: 60px;">
+            <!-- Year Groups cycle here -->
+        </div>
 
-        <div class="nav-footer">
-            <div class="scrolling-ticker">
-                SYSTEM ONLINE • LIVE COMPETITION FEED • VERIFIED ON-SITE DATA • JALAN KRISTAL SHAH ALAM • MAY THE BEST ARTWORK WIN • 
+        <!-- FOOTER TICKER -->
+        <div style="background: var(--blue); color: white; height: 80px; overflow: hidden; display: flex; align-items: center; border-top: 10px solid var(--black); box-shadow: 0 -10px 30px rgba(0,0,0,0.2);">
+            <div class="scrolling-text" style="font-family: 'Archivo Black'; font-size: 2rem; text-transform: uppercase; letter-spacing: 4px;">
+                START VOTING • MAY THE BEST ARTWORK WIN • WAIT FOR YOUR YEAR TO POP UP! • CAST YOUR VOTE VIA THE OFFICIAL QR CODE • SUPPORTING THE CREATIVE SPIRIT • 
             </div>
         </div>
     </div>
@@ -68,172 +53,163 @@
             {id:'Y10', c:'secondary', l:'YEAR 10'}, {id:'Y11', c:'secondary', l:'YEAR 11'}
         ];
 
+        let currentPairIndex = 0;
+        let allData = [];
+        let autoCycle;
+
         db.collection('artworks').onSnapshot(snap => {
-            const data = snap.docs.map(doc => ({id:doc.id, ...doc.data()}));
-            const feed = document.getElementById('standings-feed');
-            feed.innerHTML = "";
-            let globalTotal = 0;
-            let activeYears = 0;
-
-            groups.forEach((g) => {
-                const students = data.filter(a => a.year === g.id && (a.voteCount || 0) > 0)
-                                    .sort((a,b) => (b.voteCount || 0) - (a.voteCount || 0));
-                
-                students.forEach(s => globalTotal += (s.voteCount || 0));
-                if (students.length === 0) return;
-                activeYears++;
-
-                const topScore = students[0].voteCount;
-                const leaders = students.filter(s => s.voteCount === topScore);
-                const runners = students.filter(s => s.voteCount < topScore && s.voteCount > 0);
-
-                const section = document.createElement('div');
-                section.className = "exhibit-card";
-                
-                // RANDOM ROTATION FOR ARTISTIC CHAOS
-                const rot = (Math.random() * 2.4 - 1.2).toFixed(1);
-                section.style.transform = `rotate(${rot}deg)`;
-
-                // Tie-Breaker Logic for 13 Groups
-                let nameHTML = "";
-                let titleHTML = "";
-                let statusTag = "";
-
-                if (leaders.length === 1) {
-                    nameHTML = leaders[0].artist;
-                    titleHTML = `"${leaders[0].title || 'Untitled'}"`;
-                    statusTag = '<div class="card-status">LEADER</div>';
-                } else if (leaders.length <= 2) {
-                    nameHTML = leaders.map(l => l.artist).join(" & ");
-                    titleHTML = "JOINT LEADERS";
-                    statusTag = '<div class="card-status tie">TIE</div>';
-                } else {
-                    nameHTML = `${leaders.length}-WAY TIE`;
-                    titleHTML = "CAST A VOTE TO BREAK THE LOCK";
-                    statusTag = '<div class="card-status tie pulse">MASS TIE</div>';
-                }
-
-                section.innerHTML = `
-                    <div class="exhibit-header" style="background:${getCol(g.c)}">
-                        <span>${g.l}</span>
-                        ${statusTag}
-                    </div>
-                    <div class="exhibit-main">
-                        <div class="artist-block">
-                            <h2 class="winner-name">${nameHTML}</h2>
-                            <p class="winner-title">${titleHTML}</p>
-                        </div>
-                        <div class="winner-score" style="color:${getCol(g.c)}">${topScore}</div>
-                    </div>
-                    ${runners.length > 0 ? `
-                        <div class="runners-tray">
-                            ${runners.slice(0, 3).map((s, i) => `
-                                <div class="runner-row">
-                                    <span class="r-rank">#${leaders.length + i + 1}</span>
-                                    <span class="r-name">${s.artist}</span>
-                                    <span class="r-v">${s.voteCount}</span>
-                                </div>
-                            `).join('')}
-                        </div>
-                    ` : ''}
-                `;
-                feed.appendChild(section);
-            });
-
-            if (activeYears === 0) {
-                feed.innerHTML = `<div class="awaiting">AWAITING THE FIRST STROKE</div>`;
-            }
-            document.getElementById('master-total-ticker').innerText = globalTotal;
+            allData = snap.docs.map(doc => ({id:doc.id, ...doc.data()}));
+            let total = 0;
+            allData.forEach(d => total += (d.voteCount || 0));
+            document.getElementById('master-total-ticker').innerText = total;
+            renderStage();
         });
 
-        // SPACEBAR TO JUMP
+        function nextSlide() {
+            currentPairIndex += 2;
+            if (currentPairIndex >= groups.length) currentPairIndex = 0;
+            renderStage();
+            resetTimer();
+        }
+
+        function resetTimer() {
+            clearInterval(autoCycle);
+            autoCycle = setInterval(nextSlide, 12000); 
+        }
+
         window.addEventListener('keydown', (e) => {
             if (e.code === "Space" || e.keyCode === 32) {
                 e.preventDefault();
-                const cards = document.querySelectorAll('.exhibit-card');
-                const scrollPos = window.scrollY + 200;
-                for (let card of cards) {
-                    if (card.offsetTop > scrollPos) {
-                        window.scrollTo({ top: card.offsetTop - 50, behavior: 'smooth' });
-                        break;
-                    }
-                }
+                nextSlide();
             }
         });
 
-        function getCol(c){ return c==='kindergarten'?'var(--red)':c==='primary'?'var(--blue)':'var(--yellow)'; }
+        resetTimer();
+
+        function renderStage() {
+            const stage = document.getElementById('broadcast-stage');
+            stage.innerHTML = "";
+            const pair = [groups[currentPairIndex], groups[currentPairIndex + 1]].filter(Boolean);
+
+            pair.forEach(g => {
+                const students = allData.filter(a => a.year === g.id && (a.voteCount || 0) > 0)
+                                        .sort((a,b) => b.voteCount - a.voteCount);
+
+                const col = document.createElement('div');
+                col.className = "stage-column-new fade-in";
+                
+                let inner = `<div class="stage-header-new" style="background:${getCol(g.c)}; color:${g.c==='secondary'?'black':'white'}">${g.l}</div>`;
+
+                if (students.length === 0) {
+                    inner += `<div style="margin:auto; opacity:0.1; text-align:center; transform:rotate(-5deg);"><h2 style="font-family:'Archivo Black'; font-size:5rem; color:black;">AWAITING<br>VOTES</h2></div>`;
+                } else {
+                    const topScore = students[0].voteCount;
+                    const leaders = students.filter(s => s.voteCount === topScore);
+                    
+                    let nameHTML = "";
+                    let titleHTML = "";
+                    let badgeHTML = "";
+
+                    if (leaders.length === 1) {
+                        nameHTML = leaders[0].artist;
+                        titleHTML = leaders[0].title || 'Untitled';
+                        badgeHTML = 'LEADER';
+                    } else if (leaders.length <= 2) {
+                        nameHTML = leaders.map(l => l.artist).join(" & ");
+                        titleHTML = "JOINT LEADERS";
+                        badgeHTML = 'TIE';
+                    } else {
+                        nameHTML = `${leaders.length}-WAY TIE`;
+                        titleHTML = "VOTE TO BREAK THE LOCK";
+                        badgeHTML = 'MASS TIE';
+                    }
+
+                    inner += `
+                        <div class="hero-box">
+                            <div class="hero-label" style="background:${getCol(g.c)}; color:${g.c==='secondary'?'black':'white'}">${badgeHTML}</div>
+                            <div class="hero-main-row">
+                                <div class="hero-info">
+                                    <div class="hero-name">${nameHTML}</div>
+                                    <div class="hero-title">${titleHTML}</div>
+                                </div>
+                                <div class="hero-votes-box">
+                                    <span class="v-num">${topScore}</span>
+                                    <span class="v-label">VOTES</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    if (students.length > leaders.length) {
+                        inner += `<div class="runners-list">`;
+                        students.slice(leaders.length, leaders.length + 2).forEach((s, i) => {
+                            inner += `<div class="runner-item"><span>#${leaders.length + i + 1} ${s.artist}</span><span style="color:${getCol(g.c)}">${s.voteCount}</span></div>`;
+                        });
+                        inner += `</div>`;
+                    }
+                }
+                col.innerHTML = inner;
+                stage.appendChild(col);
+            });
+        }
+
+        function getCol(c) {
+            if(c === 'kindergarten') return 'var(--red)';
+            if(c === 'primary') return 'var(--blue)';
+            return 'var(--yellow)';
+        }
     </script>
 
     <style>
-        .action-canvas {
-            background: #fff;
-            background-image: linear-gradient(var(--black) 1px, transparent 1px), linear-gradient(90deg, var(--black) 1px, transparent 1px);
-            background-size: 50px 50px;
-            font-family: 'Space Grotesque', sans-serif;
+        /* WATERCOLOR CANVAS */
+        .watercolor-canvas {
+            background: #fff url('watercolor-bg.jpg') no-repeat center center fixed;
+            background-size: cover;
             margin: 0;
-            overflow-x: hidden;
-            scroll-behavior: smooth;
+            overflow: hidden;
         }
 
-        /* LIQUID PAINT EFFECTS */
-        .chaos-container { position: fixed; top:0; left:0; width:100%; height:100%; z-index: 1; pointer-events: none; filter: url('#goo'); }
-        .paint-blob { position: absolute; border-radius: 50%; opacity: 0.35; animation: flow 25s infinite alternate ease-in-out; }
-        .blob-red { width: 600px; height: 600px; background: var(--red); top: -150px; left: -150px; }
-        .blob-blue { width: 500px; height: 500px; background: var(--blue); bottom: -100px; right: -100px; animation-delay: -5s; }
-        .blob-yellow { width: 400px; height: 400px; background: var(--yellow); top: 35%; right: 15%; animation-delay: -10s; }
+        /* DOTTED BLUEPRINT OVERLAY */
+        .blueprint-grid {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: radial-gradient(rgba(0,0,0,0.2) 1.5px, transparent 1.5px);
+            background-size: 40px 40px;
+            z-index: 1;
+            pointer-events: none;
+        }
 
-        .ink-splat { position: absolute; width: 25px; height: 25px; background: #000; border-radius: 50%; opacity: 0.12; box-shadow: 30px 20px 0 #000, -40px 60px 0 #000, 80px 80px 0 #000; }
-        .ink-drip { position: absolute; width: 8px; height: 500px; background: #000; opacity: 0.08; top: -500px; animation: drip 15s infinite linear; }
-        .drip-1 { left: 10%; } .drip-2 { right: 40%; animation-delay: 8s; }
+        /* BRUTALIST UI */
+        .stage-column-new { 
+            display: flex; flex-direction: column; 
+            background: rgba(255,255,255,0.95); /* Semi-transparent white to show art through */
+            border: 12px solid var(--black); 
+            box-shadow: 40px 40px 0px rgba(0,0,0,0.2); 
+            position: relative; overflow: hidden; 
+        }
 
-        @keyframes flow { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(60px, 100px) scale(1.15); } }
-        @keyframes drip { 0% { transform: translateY(0); } 100% { transform: translateY(180vh); } }
-
-        /* CONTENT */
-        .exhibition-flow { position: relative; z-index: 5; max-width: 1200px; margin: 0 auto; }
-        .bauhaus-hero { padding: 100px 50px; display: flex; justify-content: space-between; align-items: flex-end; }
-        .title-block { border-left: 30px solid #000; padding-left: 40px; }
-        .accent-bar { height: 80px; width: 15px; background: var(--red); margin-bottom: 25px; }
-        h1 { font-family: 'Archivo Black'; font-size: 6rem; line-height: 0.8; margin: 0; letter-spacing: -6px; }
-
-        .stat-stamp { border: 10px solid #000; background: var(--yellow); padding: 15px 40px; transform: rotate(4deg); box-shadow: 20px 20px 0 #000; }
-        .stamp-label { font-weight: 900; font-size: 0.8rem; letter-spacing: 3px; }
-        .stamp-num { font-family: 'Archivo Black'; font-size: 5rem; line-height: 1; }
-
-        #standings-feed { padding: 50px; display: flex; flex-direction: column; gap: 150px; padding-bottom: 300px; }
-        .exhibit-card { background: white; border: 12px solid #000; box-shadow: 40px 40px 0px #000; position: relative; }
+        .stage-header-new { font-family: 'Archivo Black'; font-size: 3.5rem; text-align: center; padding: 25px; border-bottom: 12px solid var(--black); }
         
-        .exhibit-header { font-family: 'Archivo Black'; font-size: 2rem; color: #fff; padding: 15px 40px; display: flex; justify-content: space-between; align-items: center; border-bottom: 12px solid #000; }
-        .card-status { background: #000; color: #fff; padding: 4px 15px; font-size: 0.9rem; letter-spacing: 3px; }
-        .card-status.tie { background: var(--red); }
+        .hero-box { padding: 50px; flex: 1; display: flex; flex-direction: column; justify-content: center; min-width: 0; }
+        .hero-label { align-self: flex-start; padding: 8px 20px; font-family: 'Archivo Black'; font-size: 1rem; letter-spacing: 4px; margin-bottom: 25px; border: 4px solid black; }
+        
+        .hero-main-row { display: flex; justify-content: space-between; align-items: center; gap: 30px; width: 100%; }
+        .hero-info { flex: 1; min-width: 0; }
+        .hero-name { font-family: 'Archivo Black'; font-size: 4.5rem; line-height: 1; text-transform: uppercase; word-wrap: break-word; color: var(--black); letter-spacing: -3px; }
+        .hero-title { font-weight: 700; font-size: 1.8rem; opacity: 0.4; text-transform: uppercase; margin-top: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        .hero-votes-box { display: flex; align-items: baseline; gap: 10px; flex-shrink: 0; }
+        .v-num { font-family: 'Archivo Black'; font-size: 10rem; line-height: 0.8; color: var(--black); }
+        .v-label { font-family: 'Archivo Black'; font-size: 1.5rem; color: var(--black); }
 
-        .exhibit-main { padding: 80px; display: flex; justify-content: space-between; align-items: center; }
-        .winner-name { font-family: 'Archivo Black'; font-size: 5rem; line-height: 0.85; letter-spacing: -4px; margin: 0; text-transform: uppercase; }
-        .winner-title { font-size: 2rem; font-weight: 700; opacity: 0.3; margin-top: 20px; text-transform: uppercase; }
-        .winner-score { font-family: 'Archivo Black'; font-size: 11rem; line-height: 0.7; letter-spacing: -8px; }
+        .runners-list { background: #000; color: #fff; padding: 30px 50px; display: flex; flex-direction: column; gap: 15px; }
+        .runner-item { display: flex; justify-content: space-between; font-weight: 900; text-transform: uppercase; font-size: 1.8rem; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 8px; }
+        .runner-item span:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 25px; }
 
-        .runners-tray { background: #000; color: #fff; padding: 30px 80px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 60px; }
-        .runner-row { display: flex; justify-content: space-between; align-items: center; }
-        .r-name { font-weight: 900; text-transform: uppercase; font-size: 1.2rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 15px;}
-        .r-rank { font-family: 'Archivo Black'; color: var(--red); font-size: 0.9rem; }
-        .r-v { font-family: 'Archivo Black'; opacity: 0.6; }
+        .fade-in { animation: slam 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes slam { from { transform: scale(1.2); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
-        .nav-footer { background: var(--blue); color: #fff; position: fixed; bottom: 0; width: 100%; height: 65px; display: flex; align-items: center; border-top: 10px solid #000; z-index: 1000; }
-        .scrolling-ticker { font-family: 'Archivo Black'; font-size: 1.8rem; white-space: nowrap; animation: ticker 35s linear infinite; }
-        @keyframes ticker { from { transform: translateX(100%); } to { transform: translateX(-100%); } }
-
-        .awaiting { padding: 200px 0; text-align: center; font-family: 'Archivo Black'; font-size: 9rem; line-height: 0.8; opacity: 0.04; letter-spacing: -10px; }
-        .pulse { animation: pulse 0.8s infinite alternate; }
-        @keyframes pulse { from { opacity: 0.5; } to { opacity: 1; } }
-
-        @media (max-width: 800px) {
-            h1 { font-size: 3.5rem; }
-            .winner-name { font-size: 2.5rem; }
-            .winner-score { font-size: 6rem; }
-            .exhibit-main { flex-direction: column; text-align: center; gap: 40px; padding: 40px; }
-            .runners-tray { grid-template-columns: 1fr; padding: 30px; }
-            .stat-stamp { display: none; }
-        }
+        .scrolling-text { white-space: nowrap; animation: scroll-left 30s linear infinite; }
+        @keyframes scroll-left { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
     </style>
 </body>
 </html>
