@@ -1,4 +1,6 @@
-
+// ==========================================
+// MAZ ART EXPO 2026 - FINAL STABLE ENGINE
+// ==========================================
 
 let currentVoter = "";
 let currentArt = null;
@@ -6,7 +8,9 @@ let allArtworks = [];
 let currentCategory = ""; 
 let currentYear = "";     
 
-const CAMPUSES = [{ lat: 3.0681, lon: 101.4895 }, { lat: 0, lon: 0 }];
+// SHAH ALAM ONLY - STATED COORDINATES
+const TARGET_LAT = 3.0681; 
+const TARGET_LON = 101.4895;
 const RADIUS_KM = 5.0; 
 
 const YEAR_MAP = {
@@ -15,29 +19,27 @@ const YEAR_MAP = {
     secondary: ['Y7', 'Y8', 'Y9', 'Y10', 'Y11']
 };
 
-// --- NEW FEATURE: HARDWARE DNA GENERATOR ---
+// --- CORE UTILITIES ---
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371; 
+    const dLat = (lat2 - lat1) * Math.PI / 180; 
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
 function getDeviceDNA() {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
-    const txt = 'MAZ_EXPO_2026';
+    const txt = 'MAZ_ART_EXPO_2026';
     ctx.textBaseline = "top"; ctx.font = "14px 'Arial'"; ctx.textBaseline = "alphabetic";
     ctx.fillStyle = "#f60"; ctx.fillRect(125,1,62,20);
     ctx.fillStyle = "#069"; ctx.fillText(txt, 2, 15);
     ctx.fillStyle = "rgba(102, 204, 0, 0.7)"; ctx.fillText(txt, 4, 17);
     const result = canvas.toDataURL();
     let hash = 0;
-    for (let i = 0; i < result.length; i++) {
-        hash = (hash << 5) - hash + result.charCodeAt(i);
-        hash |= 0;
-    }
+    for (let i = 0; i < result.length; i++) { hash = (hash << 5) - hash + result.charCodeAt(i); hash |= 0; }
     return "dna_" + Math.abs(hash);
-}
-
-async function loadArtData() {
-    try {
-        const snap = await db.collection('artworks').get();
-        allArtworks = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (e) { setTimeout(loadArtData, 2000); }
 }
 
 function killSearchBox() {
@@ -47,40 +49,56 @@ function killSearchBox() {
     if (input) input.value = '';
 }
 
+function hideAllSteps() { document.querySelectorAll('#voting-card > div, #success-message').forEach(div => div.classList.add('hidden')); }
+
+// --- DATA LOAD ---
+async function loadArtData() {
+    try {
+        const snap = await db.collection('artworks').get();
+        allArtworks = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        console.log("Database Synced: " + allArtworks.length + " artists ready.");
+    } catch (e) { setTimeout(loadArtData, 2000); }
+}
 loadArtData();
+
+// --- GLOBAL FUNCTIONS ---
 
 window.startVoting = async function() {
     const idInput = document.getElementById('voter-id');
     const id = idInput.value.trim().toLowerCase();
     const btn = document.querySelector('#step-id button');
-    if (id.length < 5) return alert("Please enter email or phone.");
+
+    if (id.length < 5) return alert("Please enter your email or phone number.");
+
     btn.innerText = "AUTHENTICATING..."; btn.disabled = true;
 
     try {
         const statusDoc = await db.collection('settings').doc('status').get();
-        const settings = statusDoc.exists ? statusDoc.data() : { isOpen: true, isGeofenceEnabled: true, isDNALockEnabled: false };
+        const settings = statusDoc.exists ? statusDoc.data() : { isOpen: true, isGeofenceEnabled: true };
 
-        if (!settings.isOpen) { alert("VOTING CLOSED."); resetBtn(btn); return; }
+        if (!settings.isOpen) {
+            alert("VOTING CLOSED.");
+            btn.innerText = "Vote Now"; btn.disabled = false; return;
+        }
 
         if (settings.isGeofenceEnabled) {
             btn.innerText = "VERIFYING RADIUS...";
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
-                    let verified = false;
-                    CAMPUSES.forEach(c => { if(calculateDistance(c.lat, c.lon, pos.coords.latitude, pos.coords.longitude) <= RADIUS_KM) verified = true; });
-                    if (!verified) { alert("On-site only!"); resetBtn(btn); } 
-                    else { finishSignIn(id); }
+                    const dist = calculateDistance(TARGET_LAT, TARGET_LON, pos.coords.latitude, pos.coords.longitude);
+                    if (dist > RADIUS_KM) {
+                        alert(`ACCESS DENIED: You are ${dist.toFixed(1)}km away. Voting only allowed at Shah Alam.`);
+                        btn.innerText = "Vote Now"; btn.disabled = false;
+                    } else { proceedSignIn(id); }
                 },
-                () => { alert("Location access required!"); resetBtn(btn); },
-                { enableHighAccuracy: true, timeout: 8000 }
+                (err) => { alert("Location access required!"); btn.innerText = "Vote Now"; btn.disabled = false; },
+                { enableHighAccuracy: true, timeout: 10000 }
             );
-        } else { finishSignIn(id); }
-    } catch (e) { alert("Connection Error."); btn.disabled = false; }
+        } else { proceedSignIn(id); }
+    } catch (e) { alert("Error connecting."); btn.innerText = "Vote Now"; btn.disabled = false; }
 };
 
-function resetBtn(btn) { btn.innerText = "Vote Now"; btn.disabled = false; }
-
-function finishSignIn(id) {
+function proceedSignIn(id) {
     currentVoter = id;
     document.getElementById('voter-display').innerText = "VOTING AS: " + id;
     document.getElementById('voter-display').classList.remove('hidden');
@@ -112,11 +130,11 @@ window.showSubMenu = function(cat) {
 window.pickYear = function(year) {
     currentYear = year.toUpperCase().trim(); killSearchBox(); hideAllSteps();
     document.getElementById('step-search').classList.remove('hidden');
-    document.getElementById('search-title').innerText = "SEARCHING " + currentYear;
-    setupSearch();
+    document.getElementById('search-title').innerText = "VOTING FOR " + currentYear;
+    setupSearch(year);
 };
 
-function setupSearch() {
+function setupSearch(yearId) {
     const input = document.getElementById('search-input');
     const results = document.getElementById('search-results');
     const newInput = input.cloneNode(true);
@@ -124,7 +142,7 @@ function setupSearch() {
     newInput.addEventListener('input', () => {
         const val = newInput.value.toLowerCase().trim(); results.innerHTML = '';
         if (val.length < 1) { results.classList.add('hidden'); return; }
-        const matches = allArtworks.filter(a => a.year === currentYear && (a.id.toLowerCase().includes(val) || a.artist.toLowerCase().includes(val) || (a.title && a.title.toLowerCase().includes(val)))).slice(0, 6);
+        const matches = allArtworks.filter(a => a.year === yearId && (a.id.toLowerCase().includes(val) || a.artist.toLowerCase().includes(val) || (a.title && a.title.toLowerCase().includes(val)))).slice(0, 6);
         if (matches.length > 0) {
             results.classList.remove('hidden');
             matches.forEach(m => {
@@ -144,24 +162,16 @@ window.confirmVote = async function() {
     const btn = document.getElementById('vote-btn');
     if (btn) { btn.disabled = false; btn.innerText = "Submit Official Vote"; }
 
-    // FETCH SETTINGS FOR DNA CHECK
     const statusDoc = await db.collection('settings').doc('status').get();
     const settings = statusDoc.exists ? statusDoc.data() : { isDNALockEnabled: false };
 
-    // A. CLOUD ID CHECK (Email/Phone)
     const voteCheck = await db.collection('voters').doc(`${currentVoter}_${currentYear}`).get();
     if (voteCheck.exists) { alert("Already voted!"); localStorage.setItem(`voted_${currentYear}`, "true"); window.showSubMenu(currentCategory); return; }
 
-    // B. HARDWARE DNA CHECK (Only if enabled)
     if (settings.isDNALockEnabled) {
         const dna = getDeviceDNA();
         const dnaCheck = await db.collection('voters').where('dna', '==', dna).where('year', '==', currentYear).get();
-        if (!dnaCheck.empty) {
-            alert("HARDWARE LOCK: This phone has already cast a vote for " + currentYear);
-            localStorage.setItem(`voted_${currentYear}`, "true");
-            window.showSubMenu(currentCategory);
-            return;
-        }
+        if (!dnaCheck.empty) { alert("HARDWARE LOCK: One vote per device."); localStorage.setItem(`voted_${currentYear}`, "true"); window.showSubMenu(currentCategory); return; }
     }
     
     hideAllSteps();
@@ -182,31 +192,15 @@ window.submitVote = async function() {
     try {
         const batch = db.batch();
         batch.update(db.collection('artworks').doc(currentArt.id), { voteCount: firebase.firestore.FieldValue.increment(1) });
-        
-        // SAVE DNA WITH VOTE
-        const voterRef = db.collection('voters').doc(`${currentVoter}_${currentYear}`);
-        batch.set(voterRef, { 
-            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-            dna: getDeviceDNA(),
-            year: currentYear,
-            voterId: currentVoter
-        });
-
+        batch.set(db.collection('voters').doc(`${currentVoter}_${currentYear}`), { timestamp: firebase.firestore.FieldValue.serverTimestamp(), dna: getDeviceDNA(), year: currentYear, id: currentVoter });
         await batch.commit();
         localStorage.setItem(`voted_${currentYear}`, "true");
-        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#e63946', '#1d3557', '#ffb703'] });
-        
         document.getElementById('success-artist').innerText = currentArt.artist;
         document.getElementById('success-year').innerText = currentYear;
+        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#e63946', '#1d3557', '#ffb703'] });
         hideAllSteps(); document.getElementById('success-message').classList.remove('hidden');
-    } catch (e) { alert("Error!"); btn.disabled = false; btn.innerText = "Submit Official Vote"; }
+    } catch (e) { alert("Error! Check connection."); btn.disabled = false; btn.innerText = "Submit Official Vote"; }
 };
 
-function hideAllSteps() { document.querySelectorAll('#voting-card > div, #success-message').forEach(div => div.classList.add('hidden')); }
-window.backToSubMenu = () => { killSearchBox(); window.showSubMenu(currentCategory); };
-window.cancelToSearch = () => { killSearchBox(); hideAllSteps(); document.getElementById('step-search').classList.remove('hidden'); };
-function calculateDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-}
+window.cancelToSearch = function() { killSearchBox(); hideAllSteps(); document.getElementById('step-search').classList.remove('hidden'); };
+window.backToSubMenu = function() { killSearchBox(); window.showSubMenu(currentCategory); };
