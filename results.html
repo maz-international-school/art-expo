@@ -11,8 +11,8 @@
 </head>
 <body class="watercolor-bauhaus">
 
-    <!-- THE 3x3 LOGO ANCHOR (Blocks Gemini Watermark) -->
-    <img src="image1.png" class="school-logo" alt="MAZ Logo" style="bottom: 55px !important; right: 15px !important; z-index: 1000; opacity: 1 !important;">
+    <!-- THE 3x3 LOGO ANCHOR (Higher to block AI Watermarks) -->
+    <img src="image1.png" class="school-logo" alt="MAZ Logo" style="bottom: 60px !important; right: 20px !important; z-index: 1000; opacity: 1 !important;">
     
     <!-- BLUEPRINT GRID OVERLAY -->
     <div class="blueprint-overlay"></div>
@@ -28,7 +28,7 @@
                     <span id="master-total-ticker">0</span>
                 </div>
             </div>
-            <p class="nav-hint">SPACEBAR TO SCROLL THROUGH THE GALLERY</p>
+            <p class="nav-hint">PRESS SPACEBAR TO SCROLL THROUGH THE GALLERY</p>
         </header>
 
         <!-- SCROLLABLE STANDINGS FEED -->
@@ -73,8 +73,12 @@
 
                 const section = document.createElement('div');
                 section.className = "exhibit-card";
+                
+                // Random subtle tilt for Aura
+                const rot = (Math.random() * 1.4 - 0.7).toFixed(1);
+                section.style.transform = `rotate(${rot}deg)`;
 
-                // TIE LOGIC
+                // 1. LEADER UI
                 let nameHTML = "";
                 let titleHTML = "";
                 let statusTag = "";
@@ -90,110 +94,19 @@
                     statusTag = 'TIE';
                     
                     const divider = `<span class="bauhaus-pointer">❖</span>`;
-                    const tiedNamesHTML = leaders.map(l => l.artist).join(divider);
                     tiedNamesList = `
                         <div class="tied-names-box">
-                            <span class="tied-label">TIED ARTISTS:</span>
-                            <span class="tied-list-names">${tiedNamesHTML}</span>
+                            <span class="tied-label">TIED FOR #1:</span>
+                            <span class="tied-list-names">${leaders.map(l => l.artist).join(divider)}</span>
                         </div>
                     `;
                 }
 
-                section.innerHTML = `
-                    <div class="exhibit-header" style="border-bottom-color:${getCol(g.c)}">
-                        <span style="color:${getCol(g.c)}">${g.l}</span>
-                        <div class="card-status">${statusTag}</div>
-                    </div>
-                    <div class="exhibit-main">
-                        <div class="artist-block">
-                            <h2 class="winner-name">${nameHTML}</h2>
-                            <p class="winner-title">${titleHTML}</p>
-                            ${tiedNamesList}
-                        </div>
-                        <div class="winner-score" style="color:${getCol(g.c)}">${topScore}</div>
-                    </div>
-                    ${runners.length > 0 ? `
-                        <div class="runners-list-clean">
-                            ${runners.slice(0, 4).map((s) => {
-                                const realRank = yearData.filter(x => x.voteCount > s.voteCount).length + 1;
-                                return `
-                                    <div class="runner-row-clean">
-                                        <span class="r-rank" style="color:${getCol(g.c)}">#${realRank}</span>
-                                        <span class="r-name">${s.artist}</span>
-                                        <span class="r-v">${s.voteCount}</span>
-                                    </div>
-                                `;
-                            }).join('')}
-                        </div>
-                    ` : ''}
-                `;
-                feed.appendChild(section);
-            });
-
-            if (activeYears === 0) {
-                feed.innerHTML = `<div class="awaiting">AWAITING FIRST VOTE</div>`;
-            }
-            document.getElementById('master-total-ticker').innerText = globalTotal;
-        });
-
-        // SPACEBAR SCROLL
-        window.addEventListener('keydown', (e) => {
-            if (e.code === "Space" || e.keyCode === 32) {
-                e.preventDefault();
-                const cards = document.querySelectorAll('.exhibit-card');
-                const scrollPos = window.scrollY + 200;
-                for (let card of cards) {
-                    if (card.offsetTop > scrollPos) {
-                        window.scrollTo({ top: card.offsetTop - 40, behavior: 'smooth' });
-                        break;
-                    }
-                }
-            }
-        });
-
-        function getCol(c){ return c==='kindergarten'?'var(--red)':c==='primary'?'var(--blue)':'var(--yellow)'; }
-    </script>
-
-    <style>
-        .watercolor-bauhaus { background: #fff url('watercolor-bg.jpg') no-repeat center center fixed; background-size: cover; margin: 0; font-family: 'Montserrat', sans-serif; scroll-behavior: smooth; }
-        .blueprint-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-image: radial-gradient(rgba(0,0,0,0.15) 1.2px, transparent 1px); background-size: 30px 30px; z-index: 1; pointer-events: none; }
-        .results-wrapper { position: relative; z-index: 5; max-width: 900px; margin: 0 auto; padding: 60px 20px; }
-
-        .results-header { margin-bottom: 60px; text-align: left; }
-        .header-main { display: flex; align-items: center; gap: 30px; position: relative; }
-        .red-bar-accent { width: 12px; height: 80px; background: var(--red); }
-        h1 { font-family: 'Archivo Black'; font-size: 3.5rem; line-height: 0.8; margin: 0; letter-spacing: -3px; color: #000; }
-        .vote-stamp { background: var(--yellow); border: 6px solid #000; padding: 10px 20px; transform: rotate(5deg); box-shadow: 10px 10px 0 #000; }
-        .vote-stamp small { display: block; font-weight: 900; font-size: 0.6rem; letter-spacing: 1px; }
-        .vote-stamp span { font-family: 'Archivo Black'; font-size: 2.2rem; line-height: 1; }
-        .nav-hint { font-weight: 900; font-size: 0.6rem; letter-spacing: 4px; opacity: 0.4; margin-top: 25px; color: #000; }
-
-        #standings-feed { display: flex; flex-direction: column; gap: 80px; }
-        .exhibit-card { background: white; border: 8px solid #000; box-shadow: 20px 20px 0px #000; position: relative; }
-
-        .exhibit-header { font-family: 'Archivo Black'; font-size: 1.2rem; padding: 10px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 8px solid #000; }
-        .card-status { background: #000; color: #fff; padding: 3px 10px; font-size: 0.7rem; letter-spacing: 2px; font-weight: 900; }
-
-        .exhibit-main { padding: 40px 50px; display: flex; justify-content: space-between; align-items: flex-start; }
-        .artist-block { flex: 1; padding-right: 20px; }
-        .winner-name { font-family: 'Archivo Black'; font-size: 2.8rem; line-height: 0.9; letter-spacing: -2px; text-transform: uppercase; margin: 0; color: #000; }
-        .winner-title { font-size: 1.1rem; font-weight: 600; opacity: 0.3; margin-top: 10px; text-transform: uppercase; color: #000; }
-        .winner-score { font-family: 'Archivo Black'; font-size: 6.5rem; line-height: 0.8; letter-spacing: -4px; }
-        
-        /* CLEAN RUNNER LIST (No black background) */
-        .runners-list-clean { border-top: 2px solid #eee; padding: 25px 50px; display: flex; flex-direction: column; gap: 15px; }
-        .runner-row-clean { display: flex; align-items: center; justify-content: flex-start; gap: 20px; }
-        .r-rank { font-family: 'Archivo Black'; font-size: 1rem; width: 50px; }
-        .r-name { font-weight: 800; text-transform: uppercase; font-size: 1rem; color: #333; flex: 1; }
-        .r-v { font-family: 'Archivo Black'; font-size: 1.2rem; opacity: 0.3; }
-
-        .bauhaus-pointer { display: inline-block; margin: 0 15px; color: var(--red); font-size: 1.2rem; vertical-align: middle; }
-        .tied-names-box { margin-top: 20px; padding: 15px; border-left: 8px solid var(--black); background: #f9f9f9; }
-        .tied-label { font-size: 0.6rem; font-weight: 900; color: var(--red); display: block; margin-bottom: 5px; letter-spacing: 1px;}
-        .tied-list-names { font-size: 0.85rem; font-weight: 700; color: #333; text-transform: uppercase; line-height: 1.6; }
-
-        .awaiting { padding: 150px 0; text-align: center; font-family: 'Archivo Black'; font-size: 5rem; line-height: 0.8; opacity: 0.1; letter-spacing: -3px; color: #000; }
-        .exhibition-footer { padding: 80px 0; text-align: center; opacity: 0.3; font-weight: 900; font-size: 0.6rem; letter-spacing: 3px; color: #000; }
-    </style>
-</body>
-</html>
+                // 2. RUNNERS UI (CLEAN WHITE STYLE)
+                let runnersHTML = "";
+                if (runners.length > 0) {
+                    runnersHTML = `<div class="runners-list-clean">`;
+                    runners.slice(0, 4).forEach((s) => {
+                        const realRank = yearData.filter(x => x.voteCount > s.voteCount).length + 1;
+                        runnersHTML += `
+                            <div class="runner-row-clean">
