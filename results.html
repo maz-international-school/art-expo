@@ -11,14 +11,11 @@
 </head>
 <body class="watercolor-bauhaus">
 
-    <!-- THE 3x3 LOGO ANCHOR (Higher to block AI Watermarks) -->
     <img src="image1.png" class="school-logo" alt="MAZ Logo" style="bottom: 60px !important; right: 20px !important; z-index: 1000; opacity: 1 !important;">
     
-    <!-- BLUEPRINT GRID OVERLAY -->
     <div class="blueprint-overlay"></div>
 
     <div class="results-wrapper">
-        <!-- HEADER -->
         <header class="results-header">
             <div class="header-main">
                 <div class="red-bar-accent"></div>
@@ -31,7 +28,6 @@
             <p class="nav-hint">PRESS SPACEBAR TO SCROLL THROUGH THE GALLERY</p>
         </header>
 
-        <!-- SCROLLABLE STANDINGS FEED -->
         <main id="standings-feed">
             <!-- Year Groups injected via JS -->
         </main>
@@ -67,6 +63,9 @@
                 if (yearData.length === 0) return;
                 activeYears++;
 
+                // Get unique vote values in descending order for "Dense Ranking" logic
+                const uniqueVoteValues = [...new Set(yearData.map(a => a.voteCount))].sort((a, b) => b - a);
+
                 const topScore = yearData[0].voteCount;
                 const leaders = yearData.filter(s => s.voteCount === topScore);
                 const runners = yearData.filter(s => s.voteCount < topScore);
@@ -74,11 +73,9 @@
                 const section = document.createElement('div');
                 section.className = "exhibit-card";
                 
-                // Random subtle tilt for Aura
                 const rot = (Math.random() * 1.4 - 0.7).toFixed(1);
                 section.style.transform = `rotate(${rot}deg)`;
 
-                // 1. LEADER UI
                 let nameHTML = "";
                 let titleHTML = "";
                 let statusTag = "";
@@ -102,15 +99,19 @@
                     `;
                 }
 
-                // 2. RUNNERS UI (CLEAN WHITE STYLE)
+                // 2. RUNNERS UI WITH DENSE RANKING FIX
                 let runnersHTML = "";
                 if (runners.length > 0) {
                     runnersHTML = `<div class="runners-list-clean">`;
-                    runners.slice(0, 4).forEach((s) => {
-                        const realRank = yearData.filter(x => x.voteCount > s.voteCount).length + 1;
+                    runners.slice(0, 6).forEach((s) => {
+                        // NEW LOGIC: Find index in the unique vote counts list
+                        // If votes are [10, 8, 8, 5], unique are [10, 8, 5]
+                        // 10 is Rank 1, 8 is Rank 2, 5 is Rank 3.
+                        const denseRank = uniqueVoteValues.indexOf(s.voteCount) + 1;
+                        
                         runnersHTML += `
                             <div class="runner-row-clean">
-                                <span class="r-rank" style="color:${getCol(g.c)}">#${realRank}</span>
+                                <span class="r-rank" style="color:${getCol(g.c)}">#${denseRank}</span>
                                 <span class="r-name">${s.artist}</span>
                                 <span class="r-v">${s.voteCount}</span>
                             </div>
@@ -143,7 +144,6 @@
             document.getElementById('master-total-ticker').innerText = globalTotal;
         });
 
-        // SPACEBAR SCROLL
         window.addEventListener('keydown', (e) => {
             if (e.code === "Space" || e.keyCode === 32) {
                 e.preventDefault();
@@ -162,7 +162,7 @@
     </script>
 
     <style>
-        .watercolor-bauhaus { background: #fff url('watercolor-bg.jpg') no-repeat center center fixed; background-size: cover; margin: 0; font-family: 'Montserrat', sans-serif; scroll-behavior: smooth; }
+        .watercolor-bauhaus { background: #fff url('watercolor-bg.jpg') no-repeat center center fixed; background-size: cover; margin: 0; font-family: 'Montserrat', sans-serif; scroll-behavior: smooth; overflow-x: hidden; }
         .blueprint-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-image: radial-gradient(rgba(0,0,0,0.15) 1.2px, transparent 1px); background-size: 30px 30px; z-index: 1; pointer-events: none; }
         
         .results-wrapper { position: relative; z-index: 5; max-width: 950px; margin: 0 auto; padding: 60px 40px; }
@@ -188,7 +188,6 @@
         .winner-title { font-size: 1.1rem; font-weight: 600; opacity: 0.3; margin-top: 10px; text-transform: uppercase; color: #000; }
         .winner-score { font-family: 'Archivo Black'; font-size: 6.5rem; line-height: 0.8; letter-spacing: -4px; }
         
-        /* CLEAN RUNNER LIST */
         .runners-list-clean { border-top: 2px solid #eee; padding: 25px 50px; display: flex; flex-direction: column; gap: 15px; background: #fff; }
         .runner-row-clean { display: flex; align-items: center; justify-content: flex-start; gap: 20px; }
         .r-rank { font-family: 'Archivo Black'; font-size: 1rem; width: 50px; }
