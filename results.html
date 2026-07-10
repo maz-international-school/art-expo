@@ -3,35 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ART EXPO 2026 | LIVE VOTINGS</title>
+    <title>MAZ ART EXPO | STANDINGS</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
-<body class="gallery-theme">
+<body class="watercolor-bauhaus">
 
     <!-- THE 3x3 LOGO ANCHOR -->
-    <img src="image1.png" class="school-logo" alt="Logo" style="opacity: 0.8;">
+    <img src="image1.png" class="school-logo" alt="MAZ Logo" style="bottom: 55px !important; right: 15px !important; z-index: 1000; opacity: 1 !important;">
+    
+    <!-- BLUEPRINT GRID OVERLAY -->
+    <div class="blueprint-overlay"></div>
 
     <div class="results-wrapper">
-        <!-- GLASS HEADER -->
-        <header class="glass-header">
+        <!-- HEADER SECTION -->
+        <header class="results-header">
             <div class="header-main">
+                <div class="red-bar-accent"></div>
                 <h1>MAZ ART EXPO 2026</h1>
-                <p id="ticker-box">LIVE ACTIVITY TALLIED: <span id="master-total">0</span> VOTES</p>
+                <div class="vote-stamp">
+                    <small>TOTAL VOTES</small>
+                    <span id="master-total-ticker">0</span>
+                </div>
             </div>
+            <p class="nav-hint">SPACEBAR TO SCROLL TO NEXT YEAR</p>
         </header>
 
         <!-- SCROLLABLE STANDINGS FEED -->
         <main id="standings-feed">
-            <!-- Year Groups injected here -->
+            <!-- Year Groups injected via JS -->
         </main>
 
-        <footer style="margin-top: 50px; text-align: center; padding-bottom: 40px;">
-            <p style="font-family: 'Archivo Black'; font-size: 0.7rem; color: white; opacity: 0.5; text-transform: uppercase; letter-spacing: 2px;">
-                Secure Real-Time Data Stream • On-Site Verification Active
-            </p>
+        <footer class="exhibition-footer">
+            <p>© 2026 MAZ INTERNATIONAL SCHOOL • LIVE DATA STREAM • SECURE ON-SITE VOTING</p>
         </footer>
     </div>
 
@@ -50,142 +56,143 @@
             const feed = document.getElementById('standings-feed');
             feed.innerHTML = "";
             let globalTotal = 0;
-            let activeCount = 0;
+            let activeYears = 0;
 
             groups.forEach((g) => {
                 const students = data.filter(a => a.year === g.id && (a.voteCount || 0) > 0)
                                     .sort((a,b) => (b.voteCount || 0) - (a.voteCount || 0));
                 
                 students.forEach(s => globalTotal += (s.voteCount || 0));
-
                 if (students.length === 0) return;
-                activeCount++;
+                activeYears++;
 
                 const topScore = students[0].voteCount;
                 const leaders = students.filter(s => s.voteCount === topScore);
+                const runners = students.filter(s => s.voteCount < topScore && s.voteCount > 0);
 
-                const section = document.createElement('section');
-                section.className = "year-block-glass";
+                const section = document.createElement('div');
+                section.className = "exhibit-card";
 
-                const top = students[0];
-                const leaderHTML = `
-                    <div class="leader-row">
-                        <div class="leader-info">
-                            <span class="label" style="color:var(--yellow)">
-                                ${leaders.length > 1 ? "JOINT LEADERS" : "CURRENT LEADER"}
-                                ${leaders.length > 1 ? '<span class="tie-badge">TIE</span>' : ""}
-                            </span>
-                            <div class="leader-name">${leaders.length > 1 ? leaders.map(l => l.artist).join(" & ") : top.artist}</div>
-                            <div class="leader-title">${leaders.length === 1 ? (top.title || "Untitled") : leaders.length + " students tied for 1st"}</div>
+                let nameHTML = "";
+                let titleHTML = "";
+                let statusTag = "";
+                let tiedNamesList = "";
+
+                if (leaders.length === 1) {
+                    nameHTML = leaders[0].artist;
+                    titleHTML = `"${leaders[0].title || 'Untitled'}"`;
+                    statusTag = 'LEADER';
+                } else {
+                    nameHTML = `${leaders.length}-WAY TIE`;
+                    titleHTML = `VOTE TO BREAK THE LOCK`;
+                    statusTag = 'TIE';
+                    
+                    // THE NEW GEOMETRIC POINTER FIX
+                    const divider = `<span class="bauhaus-pointer">❖</span>`;
+                    const tiedNamesHTML = leaders.map(l => l.artist).join(divider);
+                    tiedNamesList = `
+                        <div class="tied-names-box">
+                            <span class="tied-label">TIED ARTISTS:</span>
+                            <span class="tied-list-names">${tiedNamesHTML}</span>
                         </div>
-                        <div class="leader-score">${topScore}</div>
-                    </div>
-                `;
-
-                const runners = students.filter(s => s.voteCount < topScore);
-                let listHTML = "";
-                if (runners.length > 0) {
-                    listHTML = `<div class="rank-list-glass">`;
-                    runners.slice(0, 5).forEach((s, i) => {
-                        listHTML += `
-                            <div class="rank-item-glass">
-                                <span>#${leaders.length + i + 1} ${s.artist}</span>
-                                <b>${s.voteCount}</b>
-                            </div>
-                        `;
-                    });
-                    listHTML += `</div>`;
+                    `;
                 }
 
                 section.innerHTML = `
-                    <div class="year-tag-glass" style="border-left: 8px solid ${getCol(g.c)}">${g.l}</div>
-                    <div class="content-box-glass">
-                        ${leaderHTML}
-                        ${listHTML}
+                    <div class="exhibit-header" style="background:${getCol(g.c)}">
+                        <span>${g.l}</span>
+                        <div class="card-status">${statusTag}</div>
                     </div>
+                    <div class="exhibit-main">
+                        <div class="artist-block">
+                            <h2 class="winner-name">${nameHTML}</h2>
+                            <p class="winner-title">${titleHTML}</p>
+                            ${tiedNamesList}
+                        </div>
+                        <div class="winner-score" style="color:${getCol(g.c)}">${topScore}</div>
+                    </div>
+                    ${runners.length > 0 ? `
+                        <div class="runners-tray">
+                            ${runners.slice(0, 3).map((s, i) => `
+                                <div class="runner-row">
+                                    <span class="r-rank">#${leaders.length + i + 1}</span>
+                                    <span class="r-name">${s.artist}</span>
+                                    <span class="r-v">${s.voteCount}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
                 `;
                 feed.appendChild(section);
             });
 
-            if (activeCount === 0) {
-                feed.innerHTML = `<div class="no-votes-glass">AWAITING FIRST SELECTION</div>`;
+            if (activeYears === 0) {
+                feed.innerHTML = `<div class="awaiting">AWAITING FIRST VOTE</div>`;
             }
+            document.getElementById('master-total-ticker').innerText = globalTotal;
+        });
 
-            document.getElementById('master-total').innerText = globalTotal;
+        // SPACEBAR SCROLL
+        window.addEventListener('keydown', (e) => {
+            if (e.code === "Space" || e.keyCode === 32) {
+                e.preventDefault();
+                const cards = document.querySelectorAll('.exhibit-card');
+                const scrollPos = window.scrollY + 200;
+                for (let card of cards) {
+                    if (card.offsetTop > scrollPos) {
+                        window.scrollTo({ top: card.offsetTop - 40, behavior: 'smooth' });
+                        break;
+                    }
+                }
+            }
         });
 
         function getCol(c){ return c==='kindergarten'?'var(--red)':c==='primary'?'var(--blue)':'var(--yellow)'; }
     </script>
 
     <style>
-        /* GALLERY BACKGROUND IMAGE */
-        .gallery-theme {
-            background: #000 url('bg-gallery.jpg') no-repeat center center fixed;
-            background-size: cover;
-            margin: 0;
-            font-family: 'Montserrat', sans-serif;
-            color: white;
-        }
-
-        /* DARK OVERLAY FOR READABILITY */
-        .gallery-theme::before {
-            content: '';
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.4); /* Darkens the image slightly */
-            z-index: 1;
-        }
-
-        .results-wrapper { position: relative; z-index: 2; max-width: 900px; margin: 0 auto; padding: 60px 20px; }
-
-        /* HEADER */
-        .glass-header { margin-bottom: 60px; text-align: center; }
-        h1 { font-family: 'Archivo Black'; font-size: 3.5rem; color: white; letter-spacing: -2px; margin: 0; }
-        #ticker-box { font-family: 'Archivo Black'; font-size: 1.2rem; color: var(--yellow); margin-top: 10px; }
-
-        /* GLASS CARD STYLING */
-        #standings-feed { display: flex; flex-direction: column; gap: 40px; }
+        .watercolor-bauhaus { background: #fff url('watercolor-bg.jpg') no-repeat center center fixed; background-size: cover; margin: 0; font-family: 'Montserrat', sans-serif; scroll-behavior: smooth; }
+        .blueprint-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-image: radial-gradient(rgba(0,0,0,0.15) 1.2px, transparent 1px); background-size: 30px 30px; z-index: 1; pointer-events: none; }
+        .results-wrapper { position: relative; z-index: 5; max-width: 900px; margin: 0 auto; padding: 60px 20px; }
+        .results-header { margin-bottom: 60px; text-align: left; }
+        .header-main { display: flex; align-items: center; gap: 30px; position: relative; }
+        .red-bar-accent { width: 12px; height: 80px; background: var(--red); }
+        h1 { font-family: 'Archivo Black'; font-size: 3.5rem; line-height: 0.8; margin: 0; letter-spacing: -3px; color: #000; }
+        .vote-stamp { background: var(--yellow); border: 6px solid #000; padding: 10px 20px; transform: rotate(5deg); box-shadow: 10px 10px 0 #000; }
+        .vote-stamp small { display: block; font-weight: 900; font-size: 0.6rem; letter-spacing: 1px; }
+        .vote-stamp span { font-family: 'Archivo Black'; font-size: 2.2rem; line-height: 1; }
+        .nav-hint { font-weight: 900; font-size: 0.6rem; letter-spacing: 4px; opacity: 0.4; margin-top: 25px; color: #000; }
+        #standings-feed { display: flex; flex-direction: column; gap: 80px; }
+        .exhibit-card { background: white; border: 8px solid #000; box-shadow: 20px 20px 0px #000; position: relative; }
+        .exhibit-header { font-family: 'Archivo Black'; font-size: 1.2rem; color: #fff; padding: 10px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 8px solid #000; }
+        .card-status { background: #000; color: #fff; padding: 3px 10px; font-size: 0.7rem; letter-spacing: 2px; font-weight: 900; }
+        .exhibit-main { padding: 40px 50px; display: flex; justify-content: space-between; align-items: flex-start; }
+        .artist-block { flex: 1; padding-right: 20px; }
+        .winner-name { font-family: 'Archivo Black'; font-size: 2.8rem; line-height: 0.9; letter-spacing: -2px; text-transform: uppercase; margin: 0; color: #000; }
+        .winner-title { font-size: 1.1rem; font-weight: 600; opacity: 0.3; margin-top: 10px; text-transform: uppercase; color: #000; }
+        .winner-score { font-family: 'Archivo Black'; font-size: 6.5rem; line-height: 0.8; letter-spacing: -4px; }
         
-        .year-block-glass { animation: slideUp 0.6s ease-out backwards; }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-
-        .year-tag-glass {
-            font-family: 'Archivo Black';
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(5px);
-            padding: 10px 25px;
-            display: inline-block;
-            font-size: 1.2rem;
-            margin-bottom: 5px;
+        /* THE GEOMETRIC POINTER STYLE */
+        .bauhaus-pointer { 
+            display: inline-block; 
+            margin: 0 15px; 
+            color: var(--red); 
+            font-size: 1.2rem; 
+            vertical-align: middle; 
+            opacity: 1;
         }
+        
+        .tied-names-box { margin-top: 20px; padding: 15px; border-left: 8px solid var(--black); background: #f9f9f9; }
+        .tied-label { font-size: 0.6rem; font-weight: 900; color: var(--red); display: block; margin-bottom: 5px; letter-spacing: 1px;}
+        .tied-list-names { font-size: 0.85rem; font-weight: 700; color: #333; text-transform: uppercase; line-height: 1.6; }
 
-        .content-box-glass {
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 0 20px 20px 20px;
-            padding: 30px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
-        }
-
-        .leader-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 20px; }
-        .label { font-size: 0.75rem; font-weight: 900; letter-spacing: 2px; }
-        .leader-name { font-family: 'Archivo Black'; font-size: 2.2rem; text-transform: uppercase; margin: 10px 0; line-height: 1; }
-        .leader-title { font-weight: 700; opacity: 0.6; text-transform: uppercase; font-size: 0.9rem; }
-        .leader-score { font-family: 'Archivo Black'; font-size: 5rem; line-height: 1; }
-
-        .rank-list-glass { margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .rank-item-glass { display: flex; justify-content: space-between; font-size: 0.9rem; font-weight: 700; text-transform: uppercase; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
-
-        .tie-badge { background: var(--red); color: white; padding: 2px 6px; margin-left: 10px; border-radius: 4px; }
-        .no-votes-glass { padding: 100px 0; text-align: center; opacity: 0.3; font-family: 'Archivo Black'; font-size: 2.5rem; }
-
-        @media (max-width: 600px) {
-            .rank-list-glass { grid-template-columns: 1fr; }
-            h1 { font-size: 2.2rem; }
-            .leader-name { font-size: 1.6rem; }
-            .leader-score { font-size: 3rem; }
-        }
+        .runners-tray { background: #000; color: #fff; padding: 20px 50px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; }
+        .runner-row { display: flex; justify-content: space-between; align-items: center; }
+        .r-name { font-weight: 900; text-transform: uppercase; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 15px;}
+        .r-rank { font-family: 'Archivo Black'; color: var(--red); font-size: 0.7rem; }
+        .r-v { font-family: 'Archivo Black'; opacity: 0.5; font-size: 1rem; }
+        .awaiting { padding: 150px 0; text-align: center; font-family: 'Archivo Black'; font-size: 5rem; line-height: 0.8; opacity: 0.1; letter-spacing: -3px; color: #000; }
+        .exhibition-footer { padding: 80px 0; text-align: center; opacity: 0.3; font-weight: 900; font-size: 0.6rem; letter-spacing: 3px; color: #000; }
     </style>
 </body>
 </html>
