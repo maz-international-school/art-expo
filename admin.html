@@ -14,6 +14,7 @@
 </head>
 <body style="display: block; padding: 50px 20px; overflow-x: hidden;">
 
+    <!-- THE 3x3 LOGO ANCHOR -->
     <img src="image1.png" class="school-logo" alt="Logo">
 
     <div class="container" style="max-width: 1100px; text-align: left;">
@@ -24,17 +25,31 @@
 
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 30px;" class="admin-grid">
             
-            <!-- COLUMN 1: SYSTEM & SECURITY -->
+            <!-- COLUMN 1: SYSTEM & SECURITY (UPDATED WITH LOCK CONTROLS) -->
             <div>
                 <div class="card" style="margin-bottom: 30px; border-color: var(--black);">
                     <h2>System Status</h2>
-                    <p>Voting: <b id="status-label">LOADING</b> | GPS: <b id="geo-label">LOADING</b></p>
+                    <p>Voting: <b id="status-label">LOADING</b></p>
+                    <p>GPS (5KM): <b id="geo-label">LOADING</b></p>
                     <p>Hardware Lock: <b id="dna-label">LOADING</b></p>
                     <p>Live Voters: <b id="active-voters">0</b></p>
                     
-                    <div style="display: flex; gap: 10px; margin-top: 15px;">
+                    <!-- VOTING MASTER TOGGLE -->
+                    <div style="display: flex; gap: 10px; margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px;">
                         <button onclick="window.toggleSet('isOpen', true)" style="background: #27ae60; flex: 1; font-size: 0.7rem;">UNLOCK VOTING</button>
                         <button onclick="window.toggleSet('isOpen', false)" style="background: var(--black); flex: 1; font-size: 0.7rem;">LOCK VOTING</button>
+                    </div>
+
+                    <!-- GPS TOGGLE -->
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <button onclick="window.toggleSet('isGeofenceEnabled', true)" style="background: var(--blue); flex: 1; font-size: 0.7rem;">GPS ON</button>
+                        <button onclick="window.toggleSet('isGeofenceEnabled', false)" style="background: var(--black); flex: 1; font-size: 0.7rem;">GPS OFF</button>
+                    </div>
+
+                    <!-- DNA LOCK TOGGLE -->
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <button onclick="window.toggleSet('isDNALockEnabled', true)" style="background: var(--red); flex: 1; font-size: 0.7rem;">DNA LOCK ON</button>
+                        <button onclick="window.toggleSet('isDNALockEnabled', false)" style="background: var(--black); flex: 1; font-size: 0.7rem;">DNA OFF</button>
                     </div>
                 </div>
 
@@ -67,14 +82,14 @@
             <!-- COLUMN 3: BULK SYNC -->
             <div class="card" style="border-color: var(--yellow);">
                 <h2>Bulk Sync (CSV)</h2>
-                <p style="font-size: 0.7rem; margin-bottom: 10px;">Headers: <b>Code, Name, Title, Category, Year</b></p>
+                <p style="font-size: 0.7rem; margin-bottom: 10px;">Required Headers: <b>Code, Name, Title, Category, Year</b></p>
                 <input type="file" id="csv-file" accept=".csv" style="padding: 10px;">
                 <button onclick="window.bulkUpload()" id="upload-btn" style="background: var(--blue);">Sync Namelist</button>
                 <div id="upload-status" style="margin-top:10px; font-weight: 900; color: var(--red); font-size: 0.7rem;"></div>
             </div>
         </div>
 
-        <!-- DATABASE BROWSER (SEARCH + EDIT + DELETE) -->
+        <!-- DATABASE BROWSER -->
         <div class="card" style="margin-top: 40px; box-shadow: 15px 15px 0px var(--black); width: 100%;">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
                 <h2>Cloud Database</h2>
@@ -86,8 +101,8 @@
 
             <input type="text" id="db-search" placeholder="Search by name, code, title, or year group..." style="margin-top: 20px; border-color: var(--blue);">
 
-            <div id="admin-results" style="margin-top: 20px; max-height: 600px; overflow-y: auto;">
-                <!-- Live results list with Edit/Delete buttons injected here -->
+            <div id="admin-results" style="margin-top: 10px; max-height: 600px; overflow-y: auto;">
+                <!-- Live results list -->
             </div>
         </div>
     </div>
@@ -96,7 +111,7 @@
     <script>
         let fullLocalData = [];
 
-        // 1. SETTINGS SYNC
+        // --- 1. REMOTE SETTINGS ---
         window.toggleSet = async function(key, value) {
             await db.collection('settings').doc('status').set({ [key]: value }, { merge: true });
         };
@@ -106,8 +121,12 @@
                 const d = doc.data();
                 document.getElementById('status-label').innerText = d.isOpen ? 'OPEN' : 'LOCKED';
                 document.getElementById('status-label').style.color = d.isOpen ? '#27ae60' : 'var(--red)';
-                document.getElementById('geo-label').innerText = d.isGeofenceEnabled ? '5KM ACTIVE' : 'OFF';
+                
+                document.getElementById('geo-label').innerText = d.isGeofenceEnabled ? 'ACTIVE (5KM)' : 'OFF';
+                document.getElementById('geo-label').style.color = d.isGeofenceEnabled ? 'var(--red)' : 'var(--blue)';
+                
                 document.getElementById('dna-label').innerText = d.isDNALockEnabled ? 'ACTIVE' : 'OFF';
+                document.getElementById('dna-label').style.color = d.isDNALockEnabled ? 'var(--red)' : 'var(--blue)';
             }
         });
 
@@ -115,7 +134,7 @@
             document.getElementById('active-voters').innerText = snap.size;
         });
 
-        // 2. SEARCH & LIST RENDER
+        // --- 2. SEARCH & LIST RENDER ---
         function renderList(filter = "") {
             const out = document.getElementById('admin-results');
             if (!out) return;
@@ -148,7 +167,7 @@
             });
         }
 
-        // 3. LIVE DATABASE SYNC
+        // --- 3. LIVE DATABASE SYNC ---
         db.collection('artworks').onSnapshot(snap => {
             let total = 0;
             fullLocalData = snap.docs.map(doc => {
@@ -160,7 +179,7 @@
             renderList(document.getElementById('db-search').value);
         });
 
-        // 4. MANUAL CRUD (CREATE, UPDATE, DELETE)
+        // --- 4. MANUAL CRUD ---
         window.saveArt = async function() {
             const code = document.getElementById('a-code').value.toUpperCase().trim();
             const artist = document.getElementById('a-artist').value.trim();
@@ -172,22 +191,19 @@
                 title: document.getElementById('a-title').value.trim() || "Untitled",
                 voteCount: firebase.firestore.FieldValue.increment(0)
             }, { merge: true });
-            
-            alert("Database Updated."); 
-            window.resetForm();
+            alert("Record Updated."); window.resetForm();
         };
 
         window.prepareEdit = function(id) {
             const s = fullLocalData.find(x => x.id === id);
             if (!s) return;
             document.getElementById('a-code').value = s.id;
-            document.getElementById('a-code').disabled = true; // Lock code during edit
+            document.getElementById('a-code').disabled = true;
             document.getElementById('a-artist').value = s.artist || "";
             document.getElementById('a-title').value = s.title || "";
             document.getElementById('a-year').value = s.year || "";
             document.getElementById('a-cat').value = s.category || "primary";
             document.getElementById('cancel-btn').classList.remove('hidden');
-            document.getElementById('form-title').innerText = "Edit Artist: " + id;
             window.scrollTo({ top: 0, behavior: 'smooth' });
         };
 
@@ -198,45 +214,12 @@
             document.getElementById('a-title').value = "";
             document.getElementById('a-year').value = "";
             document.getElementById('cancel-btn').classList.add('hidden');
-            document.getElementById('form-title').innerText = "Add Artist";
+            document.getElementById('form-title').innerText = "Add/Edit Artist";
         };
 
-        window.deleteArt = async function(id) { 
-            if(confirm("Permanently delete " + id + "? This cannot be undone.")) {
-                await db.collection('artworks').doc(id).delete(); 
-            }
-        };
+        window.deleteArt = async function(id) { if(confirm("Delete " + id + "?")) await db.collection('artworks').doc(id).delete(); };
 
-        // 5. BULK & MAINTENANCE
-        document.getElementById('db-search').oninput = (e) => renderList(e.target.value);
-
-        window.clearAllDeviceLocks = async function() {
-            if(confirm("FORCE GLOBAL CACHE WIPE? This clears the 'Already Voted' status on every phone browser. Required if you did a trial run.")) {
-                await db.collection('settings').doc('status').set({ 
-                    lastGlobalReset: firebase.firestore.FieldValue.serverTimestamp() 
-                }, { merge: true });
-                alert("Wipe Signal Sent.");
-            }
-        };
-
-        window.resetExpoForLaunch = async function() {
-            if(confirm("WIPE ALL VOTE COUNTS TO ZERO? This clears all voter history. DO THIS AT 8:55 AM.")) {
-                const b = db.batch();
-                fullLocalData.forEach(s => b.update(db.collection('artworks').doc(s.id), { voteCount: 0 }));
-                const vots = await db.collection('voters').get(); vots.forEach(v => b.delete(v.ref));
-                await b.commit(); 
-                alert("Clean Slate Ready!");
-            }
-        };
-
-        window.nuclearWipe = async function() {
-            if(prompt("Type DELETE to wipe every student record from the database") === "DELETE") {
-                const snap = await db.collection('artworks').get();
-                const b = db.batch(); snap.docs.forEach(doc => b.delete(doc.ref)); await b.commit();
-                location.reload();
-            }
-        };
-
+        // --- 5. BULK OPERATIONS ---
         window.bulkUpload = async function() {
             const file = document.getElementById('csv-file').files[0];
             const status = document.getElementById('upload-status');
@@ -259,9 +242,33 @@
                         status.innerText = `Sync: ${count}`;
                     }
                 }
-                alert("CSV Fully Synced!");
+                alert("Namelist Fully Synced!");
                 status.innerText = "";
             }});
+        };
+
+        window.clearAllDeviceLocks = async function() {
+            if(confirm("Force wipe all phone browser caches? This clears 'DONE' status for testers.")) {
+                await db.collection('settings').doc('status').set({ lastGlobalReset: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+                alert("Wipe Signal Sent.");
+            }
+        };
+
+        window.resetExpoForLaunch = async function() {
+            if(confirm("Wipe all vote counts and voter history? REQUIRED BEFORE 9AM.")) {
+                const b = db.batch();
+                fullLocalData.forEach(s => b.update(db.collection('artworks').doc(s.id), { voteCount: 0 }));
+                const vots = await db.collection('voters').get(); vots.forEach(v => b.delete(v.ref));
+                await b.commit(); alert("Clean Slate Ready!");
+            }
+        };
+
+        window.nuclearWipe = async function() {
+            if(prompt("Type DELETE to wipe every student") === "DELETE") {
+                const snap = await db.collection('artworks').get();
+                const b = db.batch(); snap.docs.forEach(doc => b.delete(doc.ref)); await b.commit();
+                location.reload();
+            }
         };
 
         window.exportCSV = function() {
@@ -269,6 +276,15 @@
             fullLocalData.forEach(d => { csv += `${d.id},"${d.artist}","${d.title}",${d.category},${d.year},${d.voteCount || 0}\n`; });
             const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download = 'expo_final_results.csv'; a.click();
         };
+
+        document.getElementById('db-search').oninput = (e) => renderList(e.target.value);
     </script>
+
+    <style>
+        @media (max-width: 600px) { .admin-grid { grid-template-columns: 1fr !important; } }
+        .result-row { border: 4px solid black; margin-bottom: 10px; padding: 12px; display: flex; justify-content: space-between; align-items: center; background: white; }
+        .result-row button { border: 2px solid black; font-weight: 900; }
+        small { font-family: Montserrat; text-transform: none; font-weight: 400; }
+    </style>
 </body>
 </html>
