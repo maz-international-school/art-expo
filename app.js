@@ -14,7 +14,6 @@ const YEAR_MAP = {
 };
 
 // --- GLOBAL WIPE LISTENER ---
-// Watches for the Admin's "Wipe" signal to clear browser cache for all users
 db.collection('settings').doc('status').onSnapshot(doc => {
     if (doc.exists) {
         const data = doc.data();
@@ -24,7 +23,6 @@ db.collection('settings').doc('status').onSnapshot(doc => {
         if (serverResetTime > localResetTime) {
             localStorage.clear();
             localStorage.setItem('last_processed_wipe', serverResetTime.toString());
-            // Clear cookies as well
             document.cookie.split(";").forEach(function(c) { 
                 document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
             });
@@ -71,6 +69,25 @@ window.startVoting = async function() {
     const idInput = document.getElementById('voter-id');
     const id = idInput.value.trim().toLowerCase();
     const btn = document.querySelector('#step-id button');
+    
+    // --- START OF TIME LOCK LOGIC ---
+    const now = new Date();
+    
+    // Targets: July 11th, 2026 (Month index 6 is July)
+    const startTime = new Date(2026, 6, 11, 9, 0, 0);
+    const endTime = new Date(2026, 6, 11, 12, 0, 0);
+
+    if (now < startTime) {
+        alert("Voting has not started yet.");
+        return;
+    }
+    
+    if (now >= endTime) {
+        alert("Voting has commenced.");
+        return;
+    }
+    // --- END OF TIME LOCK LOGIC ---
+
     if (id.length < 5) return alert("Please enter email or phone.");
     btn.innerText = "AUTHENTICATING..."; btn.disabled = true;
 
