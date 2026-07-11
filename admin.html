@@ -25,7 +25,7 @@
 
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 30px;" class="admin-grid">
             
-            <!-- COLUMN 1: SYSTEM & SECURITY (UPDATED WITH LOCK CONTROLS) -->
+            <!-- COLUMN 1: SYSTEM & SECURITY -->
             <div>
                 <div class="card" style="margin-bottom: 30px; border-color: var(--black);">
                     <h2>System Status</h2>
@@ -34,19 +34,16 @@
                     <p>Hardware Lock: <b id="dna-label">LOADING</b></p>
                     <p>Live Voters: <b id="active-voters">0</b></p>
                     
-                    <!-- VOTING MASTER TOGGLE -->
                     <div style="display: flex; gap: 10px; margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px;">
                         <button onclick="window.toggleSet('isOpen', true)" style="background: #27ae60; flex: 1; font-size: 0.7rem;">UNLOCK VOTING</button>
                         <button onclick="window.toggleSet('isOpen', false)" style="background: var(--black); flex: 1; font-size: 0.7rem;">LOCK VOTING</button>
                     </div>
 
-                    <!-- GPS TOGGLE -->
                     <div style="display: flex; gap: 10px; margin-top: 10px;">
                         <button onclick="window.toggleSet('isGeofenceEnabled', true)" style="background: var(--blue); flex: 1; font-size: 0.7rem;">GPS ON</button>
                         <button onclick="window.toggleSet('isGeofenceEnabled', false)" style="background: var(--black); flex: 1; font-size: 0.7rem;">GPS OFF</button>
                     </div>
 
-                    <!-- DNA LOCK TOGGLE -->
                     <div style="display: flex; gap: 10px; margin-top: 10px;">
                         <button onclick="window.toggleSet('isDNALockEnabled', true)" style="background: var(--red); flex: 1; font-size: 0.7rem;">DNA LOCK ON</button>
                         <button onclick="window.toggleSet('isDNALockEnabled', false)" style="background: var(--black); flex: 1; font-size: 0.7rem;">DNA OFF</button>
@@ -111,7 +108,6 @@
     <script>
         let fullLocalData = [];
 
-        // --- 1. REMOTE SETTINGS ---
         window.toggleSet = async function(key, value) {
             await db.collection('settings').doc('status').set({ [key]: value }, { merge: true });
         };
@@ -121,10 +117,8 @@
                 const d = doc.data();
                 document.getElementById('status-label').innerText = d.isOpen ? 'OPEN' : 'LOCKED';
                 document.getElementById('status-label').style.color = d.isOpen ? '#27ae60' : 'var(--red)';
-                
                 document.getElementById('geo-label').innerText = d.isGeofenceEnabled ? 'ACTIVE (5KM)' : 'OFF';
                 document.getElementById('geo-label').style.color = d.isGeofenceEnabled ? 'var(--red)' : 'var(--blue)';
-                
                 document.getElementById('dna-label').innerText = d.isDNALockEnabled ? 'ACTIVE' : 'OFF';
                 document.getElementById('dna-label').style.color = d.isDNALockEnabled ? 'var(--red)' : 'var(--blue)';
             }
@@ -134,13 +128,11 @@
             document.getElementById('active-voters').innerText = snap.size;
         });
 
-        // --- 2. SEARCH & LIST RENDER ---
         function renderList(filter = "") {
             const out = document.getElementById('admin-results');
             if (!out) return;
             out.innerHTML = "";
             const query = filter.toLowerCase().trim();
-
             const filtered = fullLocalData.filter(d => {
                 const name = (d.artist || "").toLowerCase();
                 const code = (d.id || "").toLowerCase();
@@ -148,7 +140,6 @@
                 const title = (d.title || "").toLowerCase();
                 return name.includes(query) || code.includes(query) || year.includes(query) || title.includes(query);
             });
-
             filtered.forEach(d => {
                 const row = document.createElement('div');
                 row.className = "result-row";
@@ -167,7 +158,6 @@
             });
         }
 
-        // --- 3. LIVE DATABASE SYNC ---
         db.collection('artworks').onSnapshot(snap => {
             let total = 0;
             fullLocalData = snap.docs.map(doc => {
@@ -179,17 +169,14 @@
             renderList(document.getElementById('db-search').value);
         });
 
-        // --- 4. MANUAL CRUD ---
         window.saveArt = async function() {
             const code = document.getElementById('a-code').value.toUpperCase().trim();
             const artist = document.getElementById('a-artist').value.trim();
             const year = document.getElementById('a-year').value.toUpperCase().trim();
             if (!code || !artist || !year) return alert("Code, Name, and Year required!");
-
             await db.collection('artworks').doc(code).set({
                 artist, year, category: document.getElementById('a-cat').value,
-                title: document.getElementById('a-title').value.trim() || "Untitled",
-                voteCount: firebase.firestore.FieldValue.increment(0)
+                title: document.getElementById('a-title').value.trim() || "Untitled"
             }, { merge: true });
             alert("Record Updated."); window.resetForm();
         };
@@ -219,30 +206,30 @@
 
         window.deleteArt = async function(id) { if(confirm("Delete " + id + "?")) await db.collection('artworks').doc(id).delete(); };
 
-        // --- 5. BULK OPERATIONS ---
+        // --- BULK OPERATIONS (VOTE PROTECTED) ---
         window.bulkUpload = async function() {
             const file = document.getElementById('csv-file').files[0];
             const status = document.getElementById('upload-status');
             if(!file) return alert("Select CSV!");
-            status.innerText = "UPLOADING...";
+            status.innerText = "SYNCING NAMES (VOTES PROTECTED)...";
             
             Papa.parse(file, {header:true, skipEmptyLines:true, complete: async (res) => {
                 let count = 0;
                 for(let item of res.data) {
                     const clean = {}; Object.keys(item).forEach(k => clean[k.trim().toLowerCase()] = item[k]);
                     if(clean.code) {
+                        // MERGE ONLY: Metadata changed, voteCount stays exactly as it is in Firestore
                         await db.collection('artworks').doc(clean.code.trim().toUpperCase()).set({
                             artist: (clean.name || "Unknown").trim(),
                             title: (clean.title || "").trim(),
                             category: (clean.category || "primary").toLowerCase().trim(),
-                            year: (clean.year || "Y1").toUpperCase().trim(),
-                            voteCount: parseInt(clean.votes) || 0
+                            year: (clean.year || "Y1").toUpperCase().trim()
                         }, { merge: true });
                         count++;
-                        status.innerText = `Sync: ${count}`;
+                        status.innerText = `Updated Student: ${count}`;
                     }
                 }
-                alert("Namelist Fully Synced!");
+                alert("Metadata Sync Complete! Live votes were not affected.");
                 status.innerText = "";
             }});
         };
@@ -255,7 +242,7 @@
         };
 
         window.resetExpoForLaunch = async function() {
-            if(confirm("Wipe all vote counts and voter history? REQUIRED BEFORE 9AM.")) {
+            if(confirm("Wipe all vote counts and voter history?")) {
                 const b = db.batch();
                 fullLocalData.forEach(s => b.update(db.collection('artworks').doc(s.id), { voteCount: 0 }));
                 const vots = await db.collection('voters').get(); vots.forEach(v => b.delete(v.ref));
