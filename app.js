@@ -13,19 +13,29 @@ const YEAR_MAP = {
     secondary: ['Y7', 'Y8', 'Y9', 'Y10', 'Y11']
 };
 
-// --- GLOBAL WIPE LISTENER ---
+// --- GLOBAL WIPE LISTENER (FIXED INFINITE LOOP) ---
 db.collection('settings').doc('status').onSnapshot(doc => {
     if (doc.exists) {
         const data = doc.data();
         const serverResetTime = data.lastGlobalReset ? data.lastGlobalReset.toMillis() : 0;
-        const localResetTime = parseInt(localStorage.getItem('last_processed_wipe') || "0");
+        const storedResetTime = localStorage.getItem('last_processed_wipe');
 
-        if (serverResetTime > localResetTime) {
-            localStorage.clear();
+        // If the device has never seen a wipe before, just record the current time and don't reload
+        if (storedResetTime === null) {
             localStorage.setItem('last_processed_wipe', serverResetTime.toString());
+            return;
+        }
+
+        // Only trigger if the server time is strictly NEWER than what we have stored
+        if (serverResetTime > parseInt(storedResetTime)) {
+            localStorage.clear();
+            // Important: Set the new time IMMEDIATELY after clearing
+            localStorage.setItem('last_processed_wipe', serverResetTime.toString());
+            
             document.cookie.split(";").forEach(function(c) { 
                 document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
             });
+
             alert("System Maintenance: Refreshing App...");
             location.reload();
         }
@@ -70,12 +80,10 @@ window.startVoting = async function() {
     const id = idInput.value.trim().toLowerCase();
     const btn = document.querySelector('#step-id button');
     
-    // --- START OF TIME LOCK LOGIC ---
+    // --- TIME LOCK LOGIC ---
     const now = new Date();
-    
-    // Targets: July 11th, 2026 (Month index 6 is July)
-    const startTime = new Date(2026, 6, 11, 9, 0, 0);
-    const endTime = new Date(2026, 6, 11, 12, 0, 0);
+    const startTime = new Date(2026, 6, 11, 9, 0, 0); // July 11, 9:00 AM
+    const endTime = new Date(2026, 6, 11, 12, 0, 0);   // July 11, 12:00 PM
 
     if (now < startTime) {
         alert("Voting has not started yet.");
@@ -86,7 +94,6 @@ window.startVoting = async function() {
         alert("Voting has commenced.");
         return;
     }
-    // --- END OF TIME LOCK LOGIC ---
 
     if (id.length < 5) return alert("Please enter email or phone.");
     btn.innerText = "AUTHENTICATING..."; btn.disabled = true;
